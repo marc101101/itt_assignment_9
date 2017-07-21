@@ -240,7 +240,7 @@ class PaintArea(QtWidgets.QWidget):
         #     self.paint_area.points.append(Pixel(900, 100, self.paint_area.active_color, self.paint_area.active_size))
 
     def init_ui(self):
-        self.setWindowTitle('Drawable')
+        self.setWindowTitle('SCRUM BOARD ITT SS17')
 
     def mousePressEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
@@ -538,12 +538,9 @@ class Color(QtWidgets.QPushButton):
 
 
 class PaintApplication:
-    """
-    Created by Fabian Schatz
-    """
 
-    WINDOW_WIDTH = 1200
-    WINDOW_HEIGHT = 600
+    WINDOW_WIDTH = 1700
+    WINDOW_HEIGHT = 1300
 
     name_hard = 'Nintendo RVL-CNT-01-TR'
 
@@ -569,9 +566,7 @@ class PaintApplication:
         self.mapping.calculate_source_to_dest(testdata)
         print("RESULT: ", self.mapping.get_pointing_point())
 
-        self.mapping = Mapping(self.paint_area.width(), self.paint_area.height())
-
-        # MAPPING TEST
+        #self.mapping = Mapping(self.paint_area.width(), self.paint_area.height())
 
         self.window.show()
 
@@ -593,110 +588,91 @@ class PaintApplication:
 
         print("WINDOWS SIZE BEFORE MAX: ", self.window.size())
 
-        # self.window.resize()
-        # self.window.showFullScreen()
         print("WINDOWS SIZE AFTER MAX: ", self.window.size())
         self.window.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
 
-        self.setup_config_ui()
-        self.setup_paint_area_ui()
+        self.init_connection_properties() #inits the basic connection ui properties
+        self.init_scrum_board() #inits the actual scrum board
 
-    def setup_config_ui(self):
-        layout = QtWidgets.QVBoxLayout()
+    def init_connection_properties(self):
+        connection_properties_layout = QtWidgets.QVBoxLayout()
 
         self.num_ir_objects = QtWidgets.QLabel("0")
         fo = QtGui.QFont("Times", 128)
         self.num_ir_objects.setFont(fo)
         self.num_ir_objects.setFixedHeight(300)
-        layout.addWidget(self.num_ir_objects)
+        connection_properties_layout.addWidget(self.num_ir_objects)
 
-        layout.addWidget(QtWidgets.QLabel("WiiMote connection status"))
+        connection_properties_layout.addWidget(QtWidgets.QLabel("WiiMote connection status"))
         self.label_wm_connection_status = QtWidgets.QLabel("Not connected")
         self.label_wm_connection_status.setAlignment(Qt.Qt.AlignCenter)
         self.label_wm_connection_status.setFixedHeight(100)
         self.fill_label_background(self.label_wm_connection_status, self.RED)
-        layout.addWidget(self.label_wm_connection_status)
+        connection_properties_layout.addWidget(self.label_wm_connection_status)
 
-        layout.addWidget(QtWidgets.QLabel("Enter your WiiMotes Mac Address:"))
+        connection_properties_layout.addWidget(QtWidgets.QLabel("Mac Address Wii Mote Controller:"))
         self.line_edit_br_addr = QtWidgets.QLineEdit()
-        self.line_edit_br_addr.setText('B8:AE:6E:1B:5B:03')
-        layout.addWidget(self.line_edit_br_addr)
+        self.line_edit_br_addr.setText('18:2A:7B:F4:AC:23')
+        connection_properties_layout.addWidget(self.line_edit_br_addr)
         self.button_connect = QtWidgets.QPushButton("Connect")
+        self.connection_established = True
         self.button_connect.clicked.connect(self.connect_wm)
-        layout.addWidget(self.button_connect)
+        connection_properties_layout.addWidget(self.button_connect)
 
         # layout.addSpacerItem(QtWidgets.QSpacerItem(0, 300))
 
-        self.main_layout.addLayout(layout, 0, 0, 12, 2, Qt.Qt.AlignCenter)
+        self.main_layout.addLayout(connection_properties_layout, 0, 0, 12, 2, Qt.Qt.AlignCenter)
 
-    def setup_paint_area_ui(self):
-        layout = QtWidgets.QVBoxLayout()
+
+    def init_scrum_board(self):
+        #define backlog area
+        scrum_board_layout = QtWidgets.QHBoxLayout()
+
+        self.backlog_area = QtWidgets.QLabel("backlog")
+        self.backlog_area.setStyleSheet("border: 1px solid black;")
+        self.backlog_area.setAlignment(Qt.Qt.AlignCenter)
+        scrum_board_layout.addWidget(self.backlog_area)
+
+        #define todo area
+        self.todo_area = QtWidgets.QLabel("todo")
+        self.todo_area.setStyleSheet("border: 1px solid black;")
+        self.todo_area.setAlignment(Qt.Qt.AlignCenter)
+        scrum_board_layout.addWidget(self.todo_area)
+
+        # define done
+        self.done_area = QtWidgets.QLabel("done")
+        self.done_area.setStyleSheet("border: 1px solid black;")
+        self.done_area.setAlignment(Qt.Qt.AlignCenter)
+        scrum_board_layout.addWidget(self.done_area)
+
+        self.main_layout.addLayout(scrum_board_layout, 0, 16, 12, 15)
+
 
         tl = QtWidgets.QHBoxLayout()
 
-        self.shape_picker = ShapePicker()
-        tl.addWidget(self.shape_picker)
+        #self.shape_picker = ShapePicker()
+        #tl.addWidget(self.shape_picker)
 
-        self.color_picker = ColorPicker()
-
-        btn_m = QtWidgets.QPushButton("-")
-        btn_p = QtWidgets.QPushButton("+")
-
-        btn_m.setMinimumHeight(100)
-        btn_p.setMinimumHeight(100)
-
-        tl.addWidget(btn_m)
-        tl.addWidget(btn_p)
-
-        self.color_picker.setFixedHeight(1 * self.WINDOW_HEIGHT / 12)
-        tl.addWidget(self.color_picker)
-        layout.addLayout(tl)
+        #self.color_picker.setFixedHeight(1 * self.WINDOW_HEIGHT / 12)
+        #tl.addWidget(self.color_picker)
+        #layout.addLayout(tl)
 
         # width needs rethinking
-        self.paint_area = PaintArea(width=(11 * self.WINDOW_WIDTH / 12), height=(11 * self.WINDOW_HEIGHT / 12))
+        #self.paint_area = PaintArea(width=(11 * self.WINDOW_WIDTH / 12), height=(11 * self.WINDOW_HEIGHT / 12))
 
-        self.paint_area.setFixedHeight(11 * self.WINDOW_HEIGHT / 12)
-        self.paint_area.setFixedWidth(11 * self.WINDOW_WIDTH / 12)
+        #self.paint_area.setFixedHeight(11 * self.WINDOW_HEIGHT / 12)
+        #self.paint_area.setFixedWidth(11 * self.WINDOW_WIDTH / 12)
         # layout.addWidget(self.paint_area, 11)
-        layout.addWidget(self.paint_area)
+        #layout.addWidget(self.paint_area)
 
-        # print("SIZE:", self.paint_area.size())
-        # print("GEOMETRY:", self.paint_area.geometry())
-        # print("WIDTH:", self.paint_area.width())
-        # print("HEIGHT:", self.paint_area.height())
+        #self.main_layout.addLayout(layout, 0, 2, 12, 10)
 
-        self.main_layout.addLayout(layout, 0, 2, 12, 10)
-
-        btn_p.clicked.connect(self.paint_area.increase_pen_size)
-        btn_m.clicked.connect(self.paint_area.decrease_pen_size)
-
-        for shape in self.shape_picker.btn_shapes:
-            shape.clicked.connect(partial(self.update_shape, shape.name))
-
-        for color in self.color_picker.btn_colors:
-            color.clicked.connect(partial(self.update_pen_color, color.color))
-
-
-
-            # corner points
-        self.paint_area.points.append(Pixel(0, 0, self.paint_area.active_color, 50))
-        self.paint_area.points.append(
-            Pixel(self.paint_area.width() / 2, self.paint_area.height() / 2, self.paint_area.active_color, 50))
-        self.paint_area.points.append(Pixel(self.paint_area.width(), 0, self.paint_area.active_color, 50))
-        self.paint_area.points.append(
-            Pixel(self.paint_area.width(), self.paint_area.height(), self.paint_area.active_color, 50))
-        self.paint_area.points.append(Pixel(0, self.paint_area.height(), self.paint_area.active_color, 50))
-
-    def update_shape(self, shape):
-        self.paint_area.active_shape = shape
-
-    def update_pen_color(self, color):
-        self.paint_area.active_color = color
-
+    #passt soweit
     def connect_wm(self):
         addr = self.line_edit_br_addr.text()
         print("Connecting to %s (%s)" % (self.name_hard, addr))
         self.wm = wiimote.connect(addr, self.name_hard)
+        self.button_connect.setText("Disconnect")
         print("Connected")
 
         self.fill_label_background(self.label_wm_connection_status, self.GREEN)
@@ -705,24 +681,20 @@ class PaintApplication:
         self.wm.buttons.register_callback(self.handle_buttons)
         self.wm.ir.register_callback(self.handle_ir_data)
 
+
+    #TODO: anpassen an Bedürnisse
     def handle_buttons(self, buttons):
         for button in buttons:
             if button[0] == 'A':
                 if button[1]:
-                    self.paint_area.start_drawing()
+                    print("A pressed")
                 elif not button[1]:
-                    self.paint_area.stop_drawing()
+                    print("A released")
             elif button[0] == 'B':
                 if button[1]:
-                    self.start_recognition()
+                    print("B pressed")
                 elif not button[1]:
-                    self.stop_recognition()
-
-    def start_recognition(self):
-        self.set_recognition_mode(True)
-
-    def stop_recognition(self):
-        self.set_recognition_mode(False)
+                    print("B released")
 
     def handle_ir_data(self, ir_data):
 
@@ -788,18 +760,15 @@ class PaintApplication:
             #
             #     self.paint_area.update()
 
+    #Füllt grünen hintergrund beim connecten
     def fill_label_background(self, label, color):
         label.setAutoFillBackground(True)
-
         palette = label.palette()
         palette.setColor(label.backgroundRole(), color)
         label.setPalette(palette)
 
 
 def main():
-    addr_hard = 'B8:AE:6E:1B:5B:03'
-    name_hard = 'Nintendo RVL-CNT-01-TR'
-
     app = QtWidgets.QApplication([])
     paint_app = PaintApplication()
 
