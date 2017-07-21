@@ -647,26 +647,6 @@ class PaintApplication:
 
         self.main_layout.addLayout(scrum_board_layout, 0, 16, 12, 15)
 
-
-        tl = QtWidgets.QHBoxLayout()
-
-        #self.shape_picker = ShapePicker()
-        #tl.addWidget(self.shape_picker)
-
-        #self.color_picker.setFixedHeight(1 * self.WINDOW_HEIGHT / 12)
-        #tl.addWidget(self.color_picker)
-        #layout.addLayout(tl)
-
-        # width needs rethinking
-        #self.paint_area = PaintArea(width=(11 * self.WINDOW_WIDTH / 12), height=(11 * self.WINDOW_HEIGHT / 12))
-
-        #self.paint_area.setFixedHeight(11 * self.WINDOW_HEIGHT / 12)
-        #self.paint_area.setFixedWidth(11 * self.WINDOW_WIDTH / 12)
-        # layout.addWidget(self.paint_area, 11)
-        #layout.addWidget(self.paint_area)
-
-        #self.main_layout.addLayout(layout, 0, 2, 12, 10)
-
     #passt soweit
     def connect_wm(self):
         addr = self.line_edit_br_addr.text()
