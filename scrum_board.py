@@ -212,16 +212,11 @@ class ScrumArea(QtWidgets.QWidget):
         self.current_mode = 'LINE'
         self.window = window_scope
 
-        self.scrum_board_layout = QtWidgets.QGridLayout()
 
         self.setMouseTracking(True)  # only get events when button is pressed
         self.init_ui()
 
         self.current_cursor_point = None
-
-        self.active_color = QtGui.QColor(255, 255, 255)
-        self.active_size = 20
-        self.active_shape = 'LINE'
 
     def init_ui(self):
         self.setWindowTitle('SCRUM BOARD')
@@ -233,7 +228,11 @@ class ScrumArea(QtWidgets.QWidget):
         scrum_board_layout_column = QtWidgets.QHBoxLayout()
 
         for sprint_section in self.data_structure["sprint_sections"]:
-            sprint_section_area = SprintSection(sprint_section["color"], sprint_section["title"], sprint_section["elements"])
+            sprint_section_area = SprintSection(sprint_section["color"],
+                                                sprint_section["title"],
+                                                sprint_section["elements"],
+                                                self.stored_elements)
+            sprint_section_area.setStyleSheet("background-color:" + sprint_section["color"])
             scrum_board_layout_column.addWidget(sprint_section_area)
 
         self.window.addLayout(scrum_board_layout_column, 0, 2, 12, 15)
@@ -293,45 +292,65 @@ class ScrumArea(QtWidgets.QWidget):
 
 class SprintSection(QtWidgets.QWidget):
 
-    def __init__(self, color, title, elements):
+    def __init__(self, color, title, elements, stored_elements):
         super().__init__()
         self.color = color
         self.title = title
         self.elements = elements
+        self.stored_elements = stored_elements
         self.init_ui()
 
     def init_ui(self):
-        layout = Qt.QHBoxLayout()
+        layout = Qt.QVBoxLayout()
         sprint_section_area_headline = QtWidgets.QLabel(self.title)
-        sprint_section_area_headline.setStyleSheet("border: 0px solid black; "
-                                                  "margin-top: -950px; "
-                                                  "background-color:" + self.color + ";"
-                                                  "font-size: 25px")
         sprint_section_area_headline.setAlignment(Qt.Qt.AlignCenter)
+        sprint_section_area_headline.setMaximumHeight(20)
+
         layout.addWidget(sprint_section_area_headline)
+
+        #add task tiles to layout
+        for tile in self.elements:
+            tile_element = TileSet(self.stored_elements[tile])
+            tile_element.setFixedHeight(100)
+            tile_element.setStyleSheet("background-color: white; margin-left: 10px")
+            layout.addWidget(tile_element)
+
         self.setLayout(layout)
+
 
 class TileSet(QtWidgets.QWidget):
 
-    def __init__(self, width=150, height=100):
+    def __init__(self, tile_element):
         super().__init__()
-        self.resize(width, height)
+        self.title = tile_element["title"]
+        self.type = tile_element["type"]
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
-
+        self.setMouseTracking(True)  # only get events when button is pressed
+        self.assigned_to = tile_element["assigned_to"]
         self.init_ui()
 
-        self.active_color = QtGui.QColor(255, 255, 255)
-        self.active_size = 20
-
     def init_ui(self):
-        self.setWindowTitle('tile')
-        scrum_board_layout = QtWidgets.QHBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
+        #layout.QtGui.QColor(255, 255, 255)
+        title_definition = QtWidgets.QLabel("Type: " + self.title)
+        title_definition.setStyleSheet("font-size: 18px;")
+        title_definition.setFixedHeight(30)
+        layout.addWidget(title_definition)
 
-        self.tile_headline = QtWidgets.QLabel("Tile")
-        self.tile_assignment = QtWidgets.QLabel("Assigned to: Markus")
+        type_definition = QtWidgets.QLabel("Type: " + self.type)
+        type_definition.setStyleSheet("font-size: 18px;")
+        type_definition.setFixedHeight(30)
+        layout.addWidget(type_definition)
 
-        scrum_board_layout.addWidget(self.tile_headline)
-        scrum_board_layout.addWidget(self.tile_assignment)
+        assigned_to_definition = QtWidgets.QLabel("Assigned to: " + self.assigned_to)
+        assigned_to_definition.setStyleSheet("font-size: 18px;")
+        assigned_to_definition.setFixedHeight(30)
+        layout.addWidget(assigned_to_definition)
+
+        self.setLayout(layout)
+
+    def mousePressEvent(self, ev):
+        print("he pressed me" + str(self.title))
 
 
 class PaintApplication:
