@@ -2,6 +2,8 @@ import lib.wiimote as wiimote
 import lib.gestures as gestures
 import time
 import sys
+import os
+import json
 
 from functools import partial
 
@@ -223,25 +225,18 @@ class ScrumArea(QtWidgets.QWidget):
 
     def init_ui(self):
         self.setWindowTitle('SCRUM BOARD')
+        self.render_sprint_sections()
+
+    def render_sprint_sections(self):
+        self.data_structure = self.parse_setup("data_structure.json")
+        self.stored_elements = self.data_structure["stored_elements"]
         scrum_board_layout_column = QtWidgets.QHBoxLayout()
 
-        backlog_area = QtWidgets.QLabel("backlog")
-        backlog_area.setStyleSheet("border: 1px solid black; margin-top: -950px")
-        backlog_area.setAlignment(Qt.Qt.AlignCenter)
-        scrum_board_layout_column.addWidget(backlog_area)
-
-        backlog_area = QtWidgets.QLabel("toDo")
-        backlog_area.setStyleSheet("border: 1px solid black; margin-top: -950px")
-        backlog_area.setAlignment(Qt.Qt.AlignCenter)
-        scrum_board_layout_column.addWidget(backlog_area)
-
-        backlog_area = QtWidgets.QLabel("done")
-        backlog_area.setStyleSheet("border: 1px solid black; margin-top: -950px")
-        backlog_area.setAlignment(Qt.Qt.AlignCenter)
-        scrum_board_layout_column.addWidget(backlog_area)
+        for sprint_section in self.data_structure["sprint_sections"]:
+            sprint_section_area = SprintSection(sprint_section["color"], sprint_section["title"], sprint_section["elements"])
+            scrum_board_layout_column.addWidget(sprint_section_area)
 
         self.window.addLayout(scrum_board_layout_column, 0, 2, 12, 15)
-
 
     def mousePressEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
@@ -286,13 +281,35 @@ class ScrumArea(QtWidgets.QWidget):
         print("Stopped drawing")
         self.drawing = False
 
-    def increase_pen_size(self):
-        self.active_size += 1
+    # Reads the configuration from the config_user_X file
+    def parse_setup(self, filename):
+        try:
+            location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+            with open(os.path.join(location, filename)) as config_file:
+                return json.load(config_file)
+        except Exception as e:
+            print("Exception: " + e)
+            pass
 
-    def decrease_pen_size(self):
-        if self.active_size > 1:
-            self.active_size -= 1
+class SprintSection(QtWidgets.QWidget):
 
+    def __init__(self, color, title, elements):
+        super().__init__()
+        self.color = color
+        self.title = title
+        self.elements = elements
+        self.init_ui()
+
+    def init_ui(self):
+        layout = Qt.QHBoxLayout()
+        sprint_section_area_headline = QtWidgets.QLabel(self.title)
+        sprint_section_area_headline.setStyleSheet("border: 0px solid black; "
+                                                  "margin-top: -950px; "
+                                                  "background-color:" + self.color + ";"
+                                                  "font-size: 25px")
+        sprint_section_area_headline.setAlignment(Qt.Qt.AlignCenter)
+        layout.addWidget(sprint_section_area_headline)
+        self.setLayout(layout)
 
 class TileSet(QtWidgets.QWidget):
 

@@ -1,25 +1,28 @@
 {
-  "areas": [
+  "sprint_sections": [
     {
       "title": "BACKLOG",
       "elements": [
         1,
         3
-      ]
+      ],
+      "color": "#90caf9"
     },
     {
       "title": "TODO",
       "elements": [
         2
-      ]
+      ],
+      "color": "#ffcc80"
     },
     {
       "title": "DONE",
       "elements": [
-      ]
+      ],
+      "color": "#a5d6a7"
     }
   ],
-  "elements":[
+  "stored_elements":[
     {
       "id": 1,
       "title": "This is the first Task",
