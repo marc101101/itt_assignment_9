@@ -1,6 +1,5 @@
 import lib.wiimote as wiimote
 import lib.gestures as gestures
-import time
 import sys
 import os
 import json
@@ -10,6 +9,9 @@ from functools import partial
 import numpy as np
 
 from PyQt5 import Qt, QtGui, QtCore, QtWidgets
+
+from PyQt5.QtGui import QDrag
+
 
 class Mapping:
     def __init__(self, dest_w, dest_h):
@@ -212,7 +214,6 @@ class ScrumArea(QtWidgets.QWidget):
         self.current_mode = 'LINE'
         self.window = window_scope
 
-
         self.setMouseTracking(True)  # only get events when button is pressed
         self.init_ui()
 
@@ -253,13 +254,9 @@ class ScrumArea(QtWidgets.QWidget):
         self.current_cursor_point = [ev.x(), ev.y()]
         self.update()
 
-    def poly(self, pts):
-        return QtGui.QPolygonF(map(lambda p: QtCore.QPointF(*p), pts))
-
     def paintEvent(self, ev):
         qp = QtGui.QPainter()
         qp.begin(self)
-        qp.drawRect(ev.rect())
 
         if self.current_cursor_point:
             qp.setBrush(QtGui.QColor(0, 0, 0))
@@ -267,20 +264,6 @@ class ScrumArea(QtWidgets.QWidget):
             qp.drawEllipse(self.current_cursor_point[0] - 10, self.current_cursor_point[1] - 10, 20, 20)
         qp.end()
 
-    def add_point(self, x, y):
-        if self.drawing:
-            self.points.append((x, y))
-            self.update()
-
-    def start_drawing(self):
-        print("Started drawing")
-        self.drawing = True
-
-    def stop_drawing(self):
-        print("Stopped drawing")
-        self.drawing = False
-
-    # Reads the configuration from the config_user_X file
     def parse_setup(self, filename):
         try:
             location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -289,6 +272,7 @@ class ScrumArea(QtWidgets.QWidget):
         except Exception as e:
             print("Exception: " + e)
             pass
+
 
 class SprintSection(QtWidgets.QWidget):
 
@@ -328,10 +312,10 @@ class TileSet(QtWidgets.QWidget):
         self.setMouseTracking(True)  # only get events when button is pressed
         self.assigned_to = tile_element["assigned_to"]
         self.init_ui()
+        self.current_cursor_point = None
 
     def init_ui(self):
         layout = QtWidgets.QVBoxLayout()
-        #layout.QtGui.QColor(255, 255, 255)
         title_definition = QtWidgets.QLabel("Type: " + self.title)
         title_definition.setStyleSheet("font-size: 18px;")
         title_definition.setFixedHeight(30)
@@ -349,8 +333,16 @@ class TileSet(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-    def mousePressEvent(self, ev):
-        print("he pressed me" + str(self.title))
+    def mouseReleaseEvent(self, ev):
+        print("release")
+        self.update()
+
+    def mousePressEvent(self, QMouseEvent):
+        print("pressed")
+
+    def mouseMoveEvent(self, ev):
+        self.current_cursor_point = [ev.x(), ev.y()]
+        self.update()
 
 
 class PaintApplication:
@@ -381,8 +373,6 @@ class PaintApplication:
         testdata = [(500, 300), (950, 300), (900, 700), (450, 690)]
         self.mapping.calculate_source_to_dest(testdata)
         print("RESULT: ", self.mapping.get_pointing_point())
-
-        #self.mapping = Mapping(self.paint_area.width(), self.paint_area.height())
 
         self.window.show()
 
