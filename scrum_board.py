@@ -198,26 +198,19 @@ class Mapping_safe:
         return x / z, y / z
 
 
-class PaintArea(QtWidgets.QWidget):
-    """
-    Created by Fabian Schatz
-    """
+class ScrumArea(QtWidgets.QWidget):
 
-    def __init__(self, width=1024, height=768):
+    def __init__(self, width, height, window_scope):
         super().__init__()
         self.resize(width, height)
         print("SIZE OF PAINT AREA: ", self.size())
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
-        self.drawing = False
-        self.grid = True
         self.recognition_mode = False
         self.points = []
-
         self.current_mode = 'LINE'
+        self.window = window_scope
 
-        self.paint_objects = []
-
-        self.current_paint_object = None
+        self.scrum_board_layout = QtWidgets.QGridLayout()
 
         self.setMouseTracking(True)  # only get events when button is pressed
         self.init_ui()
@@ -228,37 +221,33 @@ class PaintArea(QtWidgets.QWidget):
         self.active_size = 20
         self.active_shape = 'LINE'
 
-        # soem reference points for testing
-        self.paint_objects.append(Pixel(0, 0, self.active_color, self.active_size))
-        self.paint_objects.append(Pixel(0, self.height(), self.active_color, self.active_size))
-        self.paint_objects.append(Pixel(self.width(), 0, self.active_color, self.active_size))
-        self.paint_objects.append(Pixel(self.width(), self.height(), self.active_color, self.active_size))
-        self.paint_objects.append(Pixel(self.width() / 2, self.height() / 2, self.active_color, self.active_size))
-        #     self.paint_area.points.append(Pixel(600, 100, self.paint_area.active_color, self.paint_area.active_size))
-        #     self.paint_area.points.append(Pixel(700, 100, self.paint_area.active_color, self.paint_area.active_size))
-        #     self.paint_area.points.append(Pixel(800, 100, self.paint_area.active_color, self.paint_area.active_size))
-        #     self.paint_area.points.append(Pixel(900, 100, self.paint_area.active_color, self.paint_area.active_size))
-
     def init_ui(self):
-        self.setWindowTitle('SCRUM BOARD ITT SS17')
+        self.setWindowTitle('SCRUM BOARD')
+        scrum_board_layout_column = QtWidgets.QHBoxLayout()
+
+        backlog_area = QtWidgets.QLabel("backlog")
+        backlog_area.setStyleSheet("border: 1px solid black; margin-top: -950px")
+        backlog_area.setAlignment(Qt.Qt.AlignCenter)
+        scrum_board_layout_column.addWidget(backlog_area)
+
+        backlog_area = QtWidgets.QLabel("toDo")
+        backlog_area.setStyleSheet("border: 1px solid black; margin-top: -950px")
+        backlog_area.setAlignment(Qt.Qt.AlignCenter)
+        scrum_board_layout_column.addWidget(backlog_area)
+
+        backlog_area = QtWidgets.QLabel("done")
+        backlog_area.setStyleSheet("border: 1px solid black; margin-top: -950px")
+        backlog_area.setAlignment(Qt.Qt.AlignCenter)
+        scrum_board_layout_column.addWidget(backlog_area)
+
+        self.window.addLayout(scrum_board_layout_column, 0, 2, 12, 15)
+
 
     def mousePressEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
             self.drawing = True
-
-            if self.active_shape == 'LINE':
-                self.current_paint_object = Line(color=self.active_color, size=self.active_size)
-                self.current_paint_object.add_point(ev.x(), ev.y())
-                self.paint_objects.append(self.current_paint_object)
-            elif self.active_shape == 'CIRCLE':
-                self.current_paint_object = Pixel(ev.x(), ev.y(), self.active_color)
-
             self.update()
         elif ev.button() == QtCore.Qt.RightButton:
-            # try:
-            #     self.points = custom_filter(self.points) # needs to be implemented outside!
-            # except NameError:
-            #     pass
             self.update()
 
     def mouseReleaseEvent(self, ev):
@@ -267,13 +256,8 @@ class PaintArea(QtWidgets.QWidget):
             self.update()
 
     def mouseMoveEvent(self, ev):
-        if self.drawing:
-            if self.active_shape == 'LINE':
-                self.current_paint_object.add_point(ev.x(), ev.y())
-            elif self.active_shape == 'CIRCLE':
-                self.paint_objects.append(Pixel(ev.x(), ev.y(), self.active_color, self.active_size))
-
-            self.update()
+        self.current_cursor_point = [ev.x(), ev.y()]
+        self.update()
 
     def poly(self, pts):
         return QtGui.QPolygonF(map(lambda p: QtCore.QPointF(*p), pts))
@@ -281,41 +265,12 @@ class PaintArea(QtWidgets.QWidget):
     def paintEvent(self, ev):
         qp = QtGui.QPainter()
         qp.begin(self)
-        qp.setBrush(QtGui.QColor(0, 0, 0))
         qp.drawRect(ev.rect())
-        # lines
-        # qp.setBrush(QtGui.QColor(20, 255, 190))
-        # dots
-        # qp.drawPolyline(self.poly(self.points))
-
-        for elem in self.paint_objects:
-            if type(elem) == Line:
-                line_pen = QtGui.QPen()
-                line_pen.setColor(elem.color)
-                line_pen.setWidth(elem.size)
-                qp.setPen(line_pen)
-                qp.drawPolyline(self.poly(elem.points))
-
-            elif type(elem) == Pixel:
-                pixel_pen = QtGui.QPen()
-                pixel_pen.setColor(elem.color)
-                pixel_pen.setWidth(elem.size)
-                qp.setPen(pixel_pen)
-                qp.drawEllipse(elem.x, elem.y, elem.size, elem.size)
-
-        if self.grid:
-            qp.setPen(QtGui.QColor(255, 100, 100, 50))  # semi-transparent
-            for x in range(0, self.width(), 20):
-                qp.drawLine(x, 0, x, self.height())
-            for y in range(0, self.height(), 20):
-                qp.drawLine(0, y, self.width(), y)
 
         if self.current_cursor_point:
-            qp.setPen(QtGui.QColor(255, 0, 0))
-
-            qp.drawRect(self.current_cursor_point[0] - 10, self.current_cursor_point[1] - 10, 20, 20)
-            qp.drawRect(self.current_cursor_point[0] - 10, self.current_cursor_point[1] - 10, 20, 20)
-
+            qp.setBrush(QtGui.QColor(0, 0, 0))
+            qp.drawEllipse(self.current_cursor_point[0] - 10, self.current_cursor_point[1] - 10, 20, 20)
+            qp.drawEllipse(self.current_cursor_point[0] - 10, self.current_cursor_point[1] - 10, 20, 20)
         qp.end()
 
     def add_point(self, x, y):
@@ -339,202 +294,27 @@ class PaintArea(QtWidgets.QWidget):
             self.active_size -= 1
 
 
-class Pixel:
-    """
-    Created by Fabian Schatz
-    """
+class TileSet(QtWidgets.QWidget):
 
-    def __init__(self, x, y, color, size=2):
-        self.x = x
-        self.y = y
-        self.color = color
-        self.size = size
-
-
-class Line:
-    def __init__(self, color, size=5):
-        self.points = []
-        self.size = size
-        self.color = color
-
-    def add_point(self, x, y):
-        self.points.append((x, y))
-
-
-class Path:
-    """
-    Created by Fabian Schatz
-    """
-
-    def __init__(self, color, points=[], color_r=255, color_g=255, color_b=255, stroke_width=1, opacity=1):
-        self.points = points
-        self.stroke_width = stroke_width
-        self.color = color
-        self.color_r = color_r
-        self.color_g = color_g
-        self.color_b = color_b
-        self.opacity = opacity
-        self.css = None
-
-    def add_point(self, x, y):
-        self.points.append((x, y))
-
-    def set_color(self, r, g, b):
-        if r and g and b:
-            pass
-        else:
-            raise ValueError()
-
-    def update_css(self):
-        self.css = """
-            stroke-width: %d;
-            fill-color: rgb(%d, %d, %d);
-            stroke-opacity: %d;
-        """ % (self.stroke_width, self.r, self.g, self.b, self.opacity)
-
-
-class ShapePicker(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, width=150, height=100):
         super().__init__()
-
-        self.shapes = {
-            'CIRCLE': 0,
-            'LINE': 1
-        }
-
-        self.btn_shapes = []
-
-        self.active_shape = None
+        self.resize(width, height)
+        self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
         self.init_ui()
 
-    def init_ui(self):
-        layout = Qt.QHBoxLayout()
-
-        for name, color in self.shapes.items():
-            btn = Shape(name)
-            layout.addWidget(btn)
-            self.btn_shapes.append(btn)
-        self.setLayout(layout)
-
-        for button in self.btn_shapes:
-            # keep this order
-            button.clicked.connect(self.choose_shape)
-            button.clicked.connect(button.highlight)
-
-    def choose_shape(self):
-        for shape in self.btn_shapes:
-            shape.unhighlight()
-
-        for shape in self.btn_shapes:
-            if shape.highlighted:
-                self.active_shape = shape.name
-
-
-class Shape(QtWidgets.QPushButton):
-    def __init__(self, name):
-        super().__init__(name)
-        self.name = name
-        self.highlighted = False
-
-        self.css_highlighted = """
-            background-color: rgb(50, 50, 50, 0.6);
-            border: 5px solid green;
-            border-radius: 20px;
-        """
-
-        self.css_not_highlighted = """
-            background-color: rgb(50, 50, 50, 0.6);
-        """
-
-        self.setStyleSheet(self.css_not_highlighted)
-
-    def highlight(self):
-        self.highlighted = True
-        self.setStyleSheet(self.css_highlighted)
-
-    def unhighlight(self):
-        self.highlighted = False
-        self.setStyleSheet(self.css_not_highlighted)
-
-
-class ColorPicker(QtWidgets.QWidget):
-    """
-    Created by Fabian Schatz
-    """
-
-    def __init__(self):
-        super().__init__()
-
-        self.colors = {
-            'RED': (255, 0, 0),
-            'GREEN': (0, 255, 0),
-            'YELLOW': (255, 255, 0),
-            'GRAY': (100, 100, 100),
-            'BLACK': (0, 0, 0),
-        }
-
-        self.btn_colors = []
-
-        self.active_color = None
-
-        self.init_ui()
+        self.active_color = QtGui.QColor(255, 255, 255)
+        self.active_size = 20
 
     def init_ui(self):
-        layout = Qt.QHBoxLayout()
+        self.setWindowTitle('tile')
+        scrum_board_layout = QtWidgets.QHBoxLayout()
 
-        for name, color in self.colors.items():
-            btn = Color(color[0], color[1], color[2], name)
-            layout.addWidget(btn)
-            self.btn_colors.append(btn)
-        self.setLayout(layout)
+        self.tile_headline = QtWidgets.QLabel("Tile")
+        self.tile_assignment = QtWidgets.QLabel("Assigned to: Markus")
 
-        for button in self.btn_colors:
-            # keep this order
-            button.clicked.connect(self.choose_color)
-            button.clicked.connect(button.highlight)
-
-    def choose_color(self):
-        print("CHOOSE COLOR")
-        for button in self.btn_colors:
-            button.unhighlight()
-
-
-class Color(QtWidgets.QPushButton):
-    """
-    Created by Fabian Schatz
-    """
-
-    def __init__(self, r=0, g=0, b=0, name='TEST'):
-        super().__init__()
-        self.highlighted = False
-        self.color = QtGui.QColor(r, g, b)
-        self.name = name
-
-        self.css_highlighted = """
-            background-color: rgb(%d, %d, %d);
-            color: white;
-            border: 5px solid green;
-            border-radius: 20px;
-        """ % (r, g, b)
-        self.css_not_highlighted = """
-            background-color: rgb(%d, %d, %d);
-            color: white;
-        """ % (r, g, b)
-
-        self.setStyleSheet(self.css_not_highlighted)
-
-        self.setFixedWidth(100)
-        self.setFixedHeight(100)
-
-    def highlight(self):
-        print("HIGHLIGHT")
-        self.highlighted = True
-        self.setStyleSheet(self.css_highlighted)
-
-    def unhighlight(self):
-        self.highlighted = False
-        self.setStyleSheet(self.css_not_highlighted)
+        scrum_board_layout.addWidget(self.tile_headline)
+        scrum_board_layout.addWidget(self.tile_assignment)
 
 
 class PaintApplication:
@@ -549,8 +329,8 @@ class PaintApplication:
     YELLOW = QtGui.QColor(255, 255, 0)
     GRAY = QtGui.QColor(100, 100, 100)
     BLACK = QtGui.QColor(0, 0, 0)
-    recognition_mode = False
     current_recording = []
+    recognition_mode = False
 
     def __init__(self):
 
@@ -623,49 +403,12 @@ class PaintApplication:
 
         self.main_layout.addLayout(connection_properties_layout, 0, 0, 12, 2, Qt.Qt.AlignCenter)
 
-
     def init_scrum_board(self):
-        #define backlog area
-        scrum_board_layout = QtWidgets.QHBoxLayout()
+        scrum_board_layout = QtWidgets.QVBoxLayout()
 
-        self.backlog_area = QtWidgets.QLabel("backlog")
-        self.backlog_area.setStyleSheet("border: 1px solid black;")
-        self.backlog_area.setAlignment(Qt.Qt.AlignCenter)
-        scrum_board_layout.addWidget(self.backlog_area)
-
-        #define todo area
-        self.todo_area = QtWidgets.QLabel("todo")
-        self.todo_area.setStyleSheet("border: 1px solid black;")
-        self.todo_area.setAlignment(Qt.Qt.AlignCenter)
-        scrum_board_layout.addWidget(self.todo_area)
-
-        # define done
-        self.done_area = QtWidgets.QLabel("done")
-        self.done_area.setStyleSheet("border: 1px solid black;")
-        self.done_area.setAlignment(Qt.Qt.AlignCenter)
-        scrum_board_layout.addWidget(self.done_area)
-
-        self.main_layout.addLayout(scrum_board_layout, 0, 16, 12, 15)
-
-
-        tl = QtWidgets.QHBoxLayout()
-
-        #self.shape_picker = ShapePicker()
-        #tl.addWidget(self.shape_picker)
-
-        #self.color_picker.setFixedHeight(1 * self.WINDOW_HEIGHT / 12)
-        #tl.addWidget(self.color_picker)
-        #layout.addLayout(tl)
-
-        # width needs rethinking
-        #self.paint_area = PaintArea(width=(11 * self.WINDOW_WIDTH / 12), height=(11 * self.WINDOW_HEIGHT / 12))
-
-        #self.paint_area.setFixedHeight(11 * self.WINDOW_HEIGHT / 12)
-        #self.paint_area.setFixedWidth(11 * self.WINDOW_WIDTH / 12)
-        # layout.addWidget(self.paint_area, 11)
-        #layout.addWidget(self.paint_area)
-
-        #self.main_layout.addLayout(layout, 0, 2, 12, 10)
+        self.scrum_area = ScrumArea(width=(11 * self.WINDOW_WIDTH / 12), height=(11 * self.WINDOW_HEIGHT / 12), window_scope=self.main_layout)
+        scrum_board_layout.addWidget(self.scrum_area)
+        self.main_layout.addLayout(scrum_board_layout, 0, 2, 12, 15)
 
     #passt soweit
     def connect_wm(self):
@@ -680,7 +423,6 @@ class PaintApplication:
 
         self.wm.buttons.register_callback(self.handle_buttons)
         self.wm.ir.register_callback(self.handle_ir_data)
-
 
     #TODO: anpassen an Bedürnisse
     def handle_buttons(self, buttons):
@@ -729,19 +471,20 @@ class PaintApplication:
                 # print("MAPPED_DATA:", mapped_data)
                 # print()
 
-                if self.paint_area.drawing:
-                    # rechts links vertauscht
-                    # self.paint_area.paint_objects.append(Pixel(mapped_data[1], mapped_data[0], self.paint_area.active_color, self.paint_area.active_size))
+                # if self.paint_area.drawing:
+                #     # rechts links vertauscht
+                #     # self.paint_area.paint_objects.append(Pixel(mapped_data[1], mapped_data[0], self.paint_area.active_color, self.paint_area.active_size))
+                #
+                #     self.paint_area.paint_objects.append(
+                #         Pixel(mapped_data[0], mapped_data[1], self.paint_area.active_color, 30))
 
-                    self.paint_area.paint_objects.append(
-                        Pixel(mapped_data[0], mapped_data[1], self.paint_area.active_color, 30))
+                self.scrum_area.current_cursor_point = mapped_data
 
-                self.paint_area.current_cursor_point = mapped_data
-
-                self.paint_area.update()
+                self.scrum_area.update()
 
         if self.recognition_mode:
-            coord = self.paint_area.current_cursor_point
+            test = self.scrum_area.current_cursor_point
+            coord = self.scrum_area.current_cursor_point
             self.current_recording.append(coord)
             # # print(ir_data)
             #     self.paint_area.points.append(Pixel(mapped_data[0], mapped_data[1], self.paint_area.active_color, self.paint_area.active_size))
