@@ -48,6 +48,7 @@ class ScrumBoard(QtWidgets.QWidget):
             else:
                 self.ui.connection_button.setText("Disconnect")
                 self.ui.connection_status.setStyleSheet('background-color:rgb(0, 170, 0)')
+                self.ui.ir_1.setStyleSheet('background-color:rgb(0, 170, 0)')
                 self.ui.connection_status_label.setText("WII MOTE CONNECTED")
                 self.wiimote.buttons.register_callback(self.on_wiimote_button)
                 self.wiimote.ir.register_callback(self.on_wiimote_ir)
@@ -83,7 +84,7 @@ class ScrumBoard(QtWidgets.QWidget):
                 print("Button " + button + " is released")
 
     def on_wiimote_ir(self, event):
-
+        self.ui.ir_label.setText(str(len(event)))
         if len(event) is 4:
             vectors = []
             for e in event:
@@ -98,10 +99,11 @@ class ScrumBoard(QtWidgets.QWidget):
         self.ui = uic.loadUi("scrum_board_interface.ui", self)
         self.ui.connection_button.clicked.connect(self.toggle_wiimote_connection)
         self.ui.connection_input.setText("18:2A:7B:F4:AC:23")
-
         #self.ui.delete_card.setVisible(True)
         self.config = self.parse_setup("data_structure.json")
         self.append_cards_to_ui()
+        self.ui.create_new_card.clicked.connect(lambda: self.make_new_card("task"))
+
         #self.all_cards.append(self.ui.scrumCard)
 
         self.show()
@@ -119,6 +121,7 @@ class ScrumBoard(QtWidgets.QWidget):
         for card_element in self.all_cards:
             card_element.setParent(None)
             self.all_cards.remove(card_element)
+
         y_index = [0, 0, 0]
         for card_in_config in self.config["stored_elements"]:
             card = Card(self, card_in_config["id"], card_in_config["title"], card_in_config["type"], card_in_config["assigned_to"])
@@ -138,27 +141,13 @@ class ScrumBoard(QtWidgets.QWidget):
             return 930
 
     def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.RightButton:
-            pos = QtGui.QCursor.pos()
-            widget_at = QApplication.widgetAt(pos)
-            style = str(widget_at.styleSheet())
-            print(style)
-            if 'rgb(85, 170, 255)' in style:
-                self.fr_card.setStyleSheet(self.bg_colors[1])
-            elif 'red' in style:
-                self.fr_card.setStyleSheet(self.bg_colors[2])
-            else:
-                self.fr_card.setStyleSheet(self.bg_colors[0])
-
         self.__mousePressPos = None
         self.__mouseMovePos = None
         if event.button() == QtCore.Qt.LeftButton:
             self.__mousePressPos = event.globalPos()
             self.__mouseMovePos = event.globalPos()
             if self.ui.create_new_card.underMouse():
-                self.make_new_card(event)
-        # super(IPlanPy, self).mousePressEvent(event)
-        # print("mousePressEvent" + str(self.__mousePressPos) + ' ' + str(self.__mouseMovePos))
+                self.make_new_card("task")
 
     def mouseMoveEvent(self, event):
         if event.buttons() & QtCore.Qt.LeftButton:
@@ -187,17 +176,26 @@ class ScrumBoard(QtWidgets.QWidget):
         print(self.current_moving_card.id)
         if(event.pos().x() <= 500):
             print("BACKLOG")
+            self.setStatus(0)
         if ((event.pos().x() >= 500) and (event.pos().x())):
             print("TODO")
+            self.setStatus(1)
         if (event.pos().x() >= 930):
             print("DONE")
+            self.setStatus(2)
         self.append_cards_to_ui()
+        self.current_moving_card = None
         # if self.__mousePressPos is not None:
         #     moved = event.globalPos() - self.__mousePressPos
         #     self.register_if_deleted(event.pos().x(), event.pos().y())
         #     if moved.manhattanLength() > 3:
         #         event.ignore()
         #         return
+
+    def setStatus(self, status_id):
+        for element in self.config["stored_elements"]:
+            if (element["id"] == self.current_moving_card.id):
+                element["status"] = status_id
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_B:
@@ -209,10 +207,17 @@ class ScrumBoard(QtWidgets.QWidget):
             print('hover' + str(event))
             self.lbl_new_card.setStyleSheet('background-color: blue')
 
-    def make_new_card(self, event):
-        card = Card(self)
-        card.setGeometry(event.pos().x() - 10, event.pos().y() - 10, card.size().width(), card.size().height())
-        self.all_cards.append(card)
+    def make_new_card(self, type_element):
+        new_id = len(self.config["stored_elements"]) + 1
+        new_card_element = {
+          "id": new_id,
+          "title": "",
+          "type": type_element,
+          "assigned_to": "",
+          "status": 0
+        }
+        self.config["stored_elements"].append(new_card_element)
+        self.append_cards_to_ui()
         print("make new card")
 
     def register_if_deleted(self, posX, posY):
