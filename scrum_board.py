@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QApplication, QWidget
 
 import wiimote
 from vectortransform import VectorTransform
+from gesturerecognition import GestureRecognition
 from card import Card
 
 
@@ -19,13 +20,17 @@ class ScrumBoard(QtWidgets.QWidget):
         self.CONNECTIONS_FILE = "wii.motes"
         self.wiimote = None
         self.my_vector_transform = VectorTransform()
+        self.gesturerecognition = GestureRecognition()
         self.setMouseTracking(True)
         self.config = None
+        self.current_cursor_point = None
+        self.b_is_pressed = False
+        self.a_is_pressed = False
+        self.order_to_execute = None
+        self.gesture_point_path = []
         self.all_cards = []
         self.bg_colors = ['background-color: rgb(85, 170, 255)', 'background-color: red', 'background-color: green']
         self.init_ui()
-
-#------------------------------------------------------------------------
 
     def toggle_wiimote_connection(self):
         if self.wiimote is not None:
@@ -79,9 +84,16 @@ class ScrumBoard(QtWidgets.QWidget):
         if len(event) is not 0:
             button, is_pressed = event[0]
             if is_pressed:
-                print("Button " + button + " is pressed")
+                if(button is "B"):
+                    self.b_is_pressed = True
+                if(button is "A"):
+                    self.a_is_pressed = True
             else:
-                print("Button " + button + " is released")
+                if(button is "B"):
+                    self.b_is_pressed = False
+                if (button is "A"):
+                    self.a_is_pressed = False
+                    self.order_to_execute = self.gesturerecognition.get_current_gesture(self.gesture_point_path)
 
     def on_wiimote_ir(self, event):
         self.ui.ir_label.setText(str(len(event)))
@@ -91,9 +103,26 @@ class ScrumBoard(QtWidgets.QWidget):
                 vectors.append((e["x"], e["y"]))
             x, y = self.my_vector_transform.transform(vectors, self.size().width(), self.size().height())
             QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(x, y)))
+            if self.b_is_pressed:
+                card_under_mouse = self.get_card_under_mouse()
+                if card_under_mouse is not None:
+                    card_under_mouse.setGeometry(x, y, card_under_mouse.size().width(), card_under_mouse.size().height())
+                    self.current_moving_card = card_under_mouse
+                    self.current_cursor_point = [x, y]
+            if self.a_is_pressed:
+                self.gesture_point_path.append((x, y))
 
-
-#------------------------------------------------------------------------
+    def execute_order(self):
+        if(self.order_to_execute == 0):
+            print("Create BUG")
+            self.make_new_card("bug")
+        if(self.order_to_execute == 1):
+            print("Create TASK")
+            self.make_new_card("task")
+        if(self.order_to_execute == 2):
+            print("Create Epic")
+            self.make_new_card("epic")
+        self.order_to_execute = None
 
     def init_ui(self):
         self.ui = uic.loadUi("scrum_board_interface.ui", self)
@@ -151,20 +180,17 @@ class ScrumBoard(QtWidgets.QWidget):
 
     def mouseMoveEvent(self, event):
         if event.buttons() & QtCore.Qt.LeftButton:
-            print("mouse move")
-            print(len(self.all_cards))
             card_under_mouse = self.get_card_under_mouse()
             if card_under_mouse is not None:
                 card_under_mouse.setGeometry(event.pos().x(), event.pos().y(),
                                              card_under_mouse.size().width(), card_under_mouse.size().height())
                 self.current_moving_card = card_under_mouse
+                self.current_cursor_point = [event.pos().x(), event.pos().y()]
+        if(self.order_to_execute):
+            self.execute_order()
 
-        if event.buttons() == QtCore.Qt.LeftButton:
-            currPos = self.mapToGlobal(self.pos())
-            globalPos = event.globalPos()
-            diff = globalPos - self.__mouseMovePos
-            newPos = self.mapFromGlobal(currPos + diff)
-            self.__mouseMovePos = globalPos
+    def paintEvent(self, QPaintEvent):
+        print("paint")
 
     def get_card_under_mouse(self):
         for c in self.all_cards:
@@ -173,24 +199,17 @@ class ScrumBoard(QtWidgets.QWidget):
         return None
 
     def mouseReleaseEvent(self, event):
-        print(self.current_moving_card.id)
-        if(event.pos().x() <= 500):
-            print("BACKLOG")
+        self.release_card(event.pos().x(), event.pos().y())
+
+    def release_card(self, x, y):
+        if (x <= 500):
             self.setStatus(0)
-        if ((event.pos().x() >= 500) and (event.pos().x())):
-            print("TODO")
+        if ((x >= 500) and (x <= 930)):
             self.setStatus(1)
-        if (event.pos().x() >= 930):
-            print("DONE")
+        if (x >= 930):
             self.setStatus(2)
         self.append_cards_to_ui()
         self.current_moving_card = None
-        # if self.__mousePressPos is not None:
-        #     moved = event.globalPos() - self.__mousePressPos
-        #     self.register_if_deleted(event.pos().x(), event.pos().y())
-        #     if moved.manhattanLength() > 3:
-        #         event.ignore()
-        #         return
 
     def setStatus(self, status_id):
         for element in self.config["stored_elements"]:
