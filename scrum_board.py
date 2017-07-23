@@ -3,6 +3,8 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
+import json
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QWidget
 
@@ -18,6 +20,7 @@ class ScrumBoard(QtWidgets.QWidget):
         self.wiimote = None
         self.my_vector_transform = VectorTransform()
         self.setMouseTracking(True)
+        self.config = None
         self.all_cards = []
         self.bg_colors = ['background-color: rgb(85, 170, 255)', 'background-color: red', 'background-color: green']
         self.init_ui()
@@ -97,11 +100,42 @@ class ScrumBoard(QtWidgets.QWidget):
         self.ui.connection_input.setText("18:2A:7B:F4:AC:23")
 
         #self.ui.delete_card.setVisible(True)
-
-        self.apendCardsToUi()
-        self.all_cards.append(self.ui.scrumCard)
+        self.config = self.parse_setup("data_structure.json")
+        self.append_cards_to_ui()
+        #self.all_cards.append(self.ui.scrumCard)
 
         self.show()
+
+    def parse_setup(self, filename):
+        try:
+            location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+            with open(os.path.join(location, filename)) as config_file:
+                return json.load(config_file)
+        except Exception as e:
+            print("Exception: " + e)
+            pass
+
+    def append_cards_to_ui(self):
+        for card_element in self.all_cards:
+            card_element.setParent(None)
+            self.all_cards.remove(card_element)
+        y_index = [0, 0, 0]
+        for card_in_config in self.config["stored_elements"]:
+            card = Card(self, card_in_config["id"], card_in_config["title"], card_in_config["type"], card_in_config["assigned_to"])
+            x_pos = 15 + self.get_distance_x_status(card_in_config["status"])
+            y_pos = 230 + (y_index[card_in_config["status"]]*150)
+            y_index[card_in_config["status"]] = y_index[card_in_config["status"]] + 1
+
+            card.setGeometry(x_pos, y_pos, card.size().width(), card.size().height())
+            self.all_cards.append(card)
+
+    def get_distance_x_status(self, card_status):
+        if(card_status == 0):
+            return 0
+        if(card_status == 1):
+            return 500
+        if(card_status == 2):
+            return 930
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
@@ -134,6 +168,7 @@ class ScrumBoard(QtWidgets.QWidget):
             if card_under_mouse is not None:
                 card_under_mouse.setGeometry(event.pos().x(), event.pos().y(),
                                              card_under_mouse.size().width(), card_under_mouse.size().height())
+                self.current_moving_card = card_under_mouse
 
         if event.buttons() == QtCore.Qt.LeftButton:
             currPos = self.mapToGlobal(self.pos())
@@ -148,13 +183,21 @@ class ScrumBoard(QtWidgets.QWidget):
                 return c
         return None
 
-    # def mouseReleaseEvent(self, event):
-    #     if self.__mousePressPos is not None:
-    #         moved = event.globalPos() - self.__mousePressPos
-    #         self.register_if_deleted(event.pos().x(), event.pos().y())
-    #         if moved.manhattanLength() > 3:
-    #             event.ignore()
-    #             return
+    def mouseReleaseEvent(self, event):
+        print(self.current_moving_card.id)
+        if(event.pos().x() <= 500):
+            print("BACKLOG")
+        if ((event.pos().x() >= 500) and (event.pos().x())):
+            print("TODO")
+        if (event.pos().x() >= 930):
+            print("DONE")
+        self.append_cards_to_ui()
+        # if self.__mousePressPos is not None:
+        #     moved = event.globalPos() - self.__mousePressPos
+        #     self.register_if_deleted(event.pos().x(), event.pos().y())
+        #     if moved.manhattanLength() > 3:
+        #         event.ignore()
+        #         return
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_B:

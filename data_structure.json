@@ -1,45 +1,32 @@
 {
-  "sprint_sections": [
-    {
-      "title": "BACKLOG",
-      "elements": [
-        0,
-        2
-      ],
-      "color": "#90caf9"
-    },
-    {
-      "title": "TODO",
-      "elements": [
-        1
-      ],
-      "color": "#ffcc80"
-    },
-    {
-      "title": "DONE",
-      "elements": [
-      ],
-      "color": "#a5d6a7"
-    }
-  ],
   "stored_elements":[
     {
       "id": 1,
       "title": "This is the first Task",
       "type": "bug",
-      "assigned_to": "markus"
+      "assigned_to": "markus",
+      "status": 0
     },
      {
       "id": 2,
       "title": "This is the second Task",
       "type": "epic",
-      "assigned_to": "gina"
+      "assigned_to": "gina",
+       "status": 1
     },
      {
       "id": 3,
       "title": "This is the third Task",
       "type": "task",
-      "assigned_to": "wimmer"
+      "assigned_to": "wimmer",
+       "status": 0
+    },
+    {
+      "id": 4,
+      "title": "This is the fourth Task",
+      "type": "task",
+      "assigned_to": "wimmer2",
+       "status": 2
     }
   ]
 }
