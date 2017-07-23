@@ -11,7 +11,7 @@ from vectortransform import VectorTransform
 from card import Card
 
 
-class IPlanPy(QtWidgets.QWidget):
+class ScrumBoard(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.CONNECTIONS_FILE = "wii.motes"
@@ -24,12 +24,6 @@ class IPlanPy(QtWidgets.QWidget):
 
 #------------------------------------------------------------------------
 
-    def get_all_known_connections(self):
-        with open(self.CONNECTIONS_FILE) as f:
-            content = f.readlines()
-            f.close()
-        return [x.strip() for x in content]
-
     def toggle_wiimote_connection(self):
         if self.wiimote is not None:
             self.disconnect_wiimote()
@@ -37,33 +31,31 @@ class IPlanPy(QtWidgets.QWidget):
         self.connect_wiimote()
 
     def connect_wiimote(self):
-        current_item = "18:2A:7B:F4:AC:23"
-        if current_item is not None:
-            address = "18:2A:7B:F4:AC:23"
-            if address is not "":
-                try:
-                    self.wiimote = wiimote.connect(address)
-                except Exception:
-                    QtWidgets.QMessageBox.critical(self, "Error", "Could not connect to " + address + "!")
-                    self.ui.btn_connect_wiimote.setText("Connect")
-                    return
+        address = self.ui.connection_input.text()
+        if address is not "":
+            try:
+                self.wiimote = wiimote.connect(address)
+            except Exception:
+                QtWidgets.QMessageBox.critical(self, "Error", "Could not connect to " + address + "!")
+                self.ui.btn_connect_wiimote.setText("Connect")
+                return
 
-                if self.wiimote is None:
-                    self.ui.btn_connect_wiimote.setText("Connect")
-                else:
-                    self.ui.btn_connect_wiimote.setText("Disconnect")
-                    self.ui.lbl_wiimote_address.setText("Connected to " + address)
-                    self.wiimote.buttons.register_callback(self.on_wiimote_button)
-                    self.wiimote.ir.register_callback(self.on_wiimote_ir)
-                    self.wiimote.rumble()
-                    self.ui.fr_connection.setVisible(False)
-                    self.save_connection_address(address)
+            if self.wiimote is None:
+                self.ui.btn_connect_wiimote.setText("Connect")
+            else:
+                self.ui.connection_button.setText("Disconnect")
+                self.ui.connection_status.setStyleSheet('background-color:rgb(0, 170, 0)')
+                self.ui.connection_status_label.setText("WII MOTE CONNECTED")
+                self.wiimote.buttons.register_callback(self.on_wiimote_button)
+                self.wiimote.ir.register_callback(self.on_wiimote_ir)
+                self.wiimote.rumble()
 
     def disconnect_wiimote(self):
         self.wiimote.disconnect()
         self.wiimote = None
         self.ui.connection_button.setText("Connect")
-        #self.ui.lbl_wiimote_address.setText("Not connected")
+        self.ui.connection_status.setStyleSheet('background-color:rgb(255, 0, 0)')
+        self.ui.connection_status_label.setText("NO WII MOTE CONNECTED")
 
     def toggle_connection_frame(self, event):
         self.ui.fr_connection.setVisible(not self.ui.fr_connection.isVisible())
@@ -88,6 +80,7 @@ class IPlanPy(QtWidgets.QWidget):
                 print("Button " + button + " is released")
 
     def on_wiimote_ir(self, event):
+
         if len(event) is 4:
             vectors = []
             for e in event:
@@ -101,10 +94,12 @@ class IPlanPy(QtWidgets.QWidget):
     def init_ui(self):
         self.ui = uic.loadUi("scrum_board_interface.ui", self)
         self.ui.connection_button.clicked.connect(self.toggle_wiimote_connection)
+        self.ui.connection_input.setText("18:2A:7B:F4:AC:23")
 
         #self.ui.delete_card.setVisible(True)
 
-        #self.all_cards.append(self.ui.fr_card)
+        self.apendCardsToUi()
+        self.all_cards.append(self.ui.scrumCard)
 
         self.show()
 
@@ -153,13 +148,13 @@ class IPlanPy(QtWidgets.QWidget):
                 return c
         return None
 
-    def mouseReleaseEvent(self, event):
-        if self.__mousePressPos is not None:
-            moved = event.globalPos() - self.__mousePressPos
-            self.register_if_deleted(event.pos().x(), event.pos().y())
-            if moved.manhattanLength() > 3:
-                event.ignore()
-                return
+    # def mouseReleaseEvent(self, event):
+    #     if self.__mousePressPos is not None:
+    #         moved = event.globalPos() - self.__mousePressPos
+    #         self.register_if_deleted(event.pos().x(), event.pos().y())
+    #         if moved.manhattanLength() > 3:
+    #             event.ignore()
+    #             return
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_B:
@@ -189,5 +184,5 @@ class IPlanPy(QtWidgets.QWidget):
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
-    i_plan_py = IPlanPy()
+    scrum_board = ScrumBoard()
     sys.exit(app.exec_())
