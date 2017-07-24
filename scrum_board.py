@@ -25,7 +25,10 @@ class ScrumBoard(QtWidgets.QWidget):
         self.current_cursor_point = None
         self.b_is_pressed = False
         self.a_is_pressed = False
+        self.mouse_is_released = False
+        self.card_moved_by_wii = False
         self.order_to_execute = None
+        self.undo_last_order = False
         self.gesture_point_path = []
         self.all_cards = []
         self.bg_colors = ['background-color: rgb(85, 170, 255)', 'background-color: red', 'background-color: green']
@@ -85,9 +88,12 @@ class ScrumBoard(QtWidgets.QWidget):
             if is_pressed:
                 if(button is "B"):
                     self.b_is_pressed = True
+                    self.card_moved_by_wii = True
                 if(button is "A"):
                     print("A pressed")
                     self.a_is_pressed = True
+                if (button is "Left"):
+                    self.undo_last_order = True
             else:
                 if(button is "B"):
                     self.b_is_pressed = False
@@ -104,21 +110,18 @@ class ScrumBoard(QtWidgets.QWidget):
     def on_wiimote_ir(self, event):
         self.ui.ir_label.setText(str(len(event)))
         if len(event) is 4:
-            vectors = []
-            for e in event:
-                vectors.append((e["x"], e["y"]))
-            x, y = self.my_vector_transform.transform(vectors, self.size().width(), self.size().height())
+            vector_array = []
+            for current_led in event:
+                vector_array.append((current_led["x"], current_led["y"]))
+            x, y = self.my_vector_transform.transform(vector_array, self.size().width(), self.size().height())
             QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(x, y)))
-            if self.b_is_pressed:
-                card_under_mouse = self.get_card_under_mouse()
-                if card_under_mouse is not None:
-                    card_under_mouse.setGeometry(x, y, card_under_mouse.size().width(), card_under_mouse.size().height())
-                    self.current_moving_card = card_under_mouse
-                    self.current_cursor_point = [x, y]
+
             if self.a_is_pressed:
+                print("appended")
                 self.gesture_point_path.append((x, y))
 
     def execute_order(self):
+        print("ORDER")
         if(self.order_to_execute == 0):
             print("Create BUG")
             self.make_new_card("bug")
@@ -135,7 +138,7 @@ class ScrumBoard(QtWidgets.QWidget):
         self.ui.connection_button.clicked.connect(self.toggle_wiimote_connection)
         self.ui.connection_input.setText("18:2A:7B:F4:AC:23")
         #self.ui.delete_card.setVisible(True)
-        self.config = self.parse_setup("data_structure.json")
+        self.config = self.parse_setup("data/data_structure.json")
         self.append_cards_to_ui()
         self.ui.create_new_card.clicked.connect(lambda: self.make_new_card("task"))
 
@@ -153,14 +156,16 @@ class ScrumBoard(QtWidgets.QWidget):
             pass
 
     def append_cards_to_ui(self):
+        print("append")
         for card_element in self.all_cards:
             card_element.setParent(None)
             self.all_cards.remove(card_element)
 
         y_index = [0, 0, 0]
+        self.all_cards = []
         for card_in_config in self.config["stored_elements"]:
             card = Card(self, card_in_config["id"], card_in_config["title"], card_in_config["type"], card_in_config["assigned_to"])
-            x_pos = 15 + self.get_distance_x_status(card_in_config["status"])
+            x_pos = 20 + self.get_distance_x_status(card_in_config["status"])
             y_pos = 230 + (y_index[card_in_config["status"]]*150)
             y_index[card_in_config["status"]] = y_index[card_in_config["status"]] + 1
 
@@ -171,56 +176,65 @@ class ScrumBoard(QtWidgets.QWidget):
         if(card_status == 0):
             return 0
         if(card_status == 1):
-            return 500
+            return 430
         if(card_status == 2):
-            return 930
+            return 865
 
     def mousePressEvent(self, event):
-        self.__mousePressPos = None
-        self.__mouseMovePos = None
         if event.button() == QtCore.Qt.LeftButton:
-            self.__mousePressPos = event.globalPos()
-            self.__mouseMovePos = event.globalPos()
             if self.ui.create_new_card.underMouse():
                 self.make_new_card("task")
 
     def mouseMoveEvent(self, event):
-        if event.buttons() & QtCore.Qt.LeftButton:
+        pos_x = event.pos().x()
+        pos_y = event.pos().y()
+        if event.buttons() & QtCore.Qt.LeftButton or self.b_is_pressed:
             card_under_mouse = self.get_card_under_mouse()
             if card_under_mouse is not None:
-                card_under_mouse.setGeometry(event.pos().x(), event.pos().y(),
+                card_under_mouse.setGeometry(pos_x, pos_y,
                                              card_under_mouse.size().width(), card_under_mouse.size().height())
                 self.current_moving_card = card_under_mouse
-                self.current_cursor_point = [event.pos().x(), event.pos().y()]
-        if(self.order_to_execute):
+                self.current_cursor_point = [pos_x, pos_y]
+
+        if self.order_to_execute:
             self.execute_order()
 
-    # def paintEvent(self, QPaintEvent):
-        #print("paint")
+        if self.mouse_is_released or self.card_moved_by_wii:
+            self.card_moved_by_wii = False
+            self.mouse_is_released = False
+            self.release_card(event.pos().x(), event.pos().y())
+
+        if self.undo_last_order:
+            self.undo_last_order = False
+            self.undo_last_order_method()
 
     def get_card_under_mouse(self):
-        for c in self.all_cards:
-            if c.underMouse() is True:
-                return c
+        for card in self.all_cards:
+            if card.underMouse() is True:
+                return card
         return None
 
     def mouseReleaseEvent(self, event):
         self.release_card(event.pos().x(), event.pos().y())
 
     def release_card(self, x, y):
-        if (x <= 500):
+        if (x <= 440):
             self.setStatus(0)
-        if ((x >= 500) and (x <= 930)):
+        if ((x >= 440) and (x <= 870)):
             self.setStatus(1)
-        if (x >= 930):
+        if (x >= 870):
             self.setStatus(2)
         self.append_cards_to_ui()
-        self.current_moving_card = None
+
+    def undo_last_order_method(self):
+        print("undooo")
 
     def setStatus(self, status_id):
+        print("STATUS")
         for element in self.config["stored_elements"]:
             if (element["id"] == self.current_moving_card.id):
                 element["status"] = status_id
+        #self.current_moving_card = None
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_B:

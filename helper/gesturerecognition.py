@@ -207,7 +207,11 @@ class GestureRecognition:
         if(len(recorded_path) >= 64):
             self.current_path = None
             self.compare_array = None
-            self.current_path = self.custom_filter(recorded_path)
+            print("WICHTIG: " + str(len(recorded_path)))
+            try:
+                self.current_path = self.custom_filter(recorded_path)
+            except Exception as e:
+                return 3
             self.compare_array = []
             self.compare_array.append(self.find_gesture(self.current_path, self.flash_bug))
             self.compare_array.append(self.find_gesture(self.current_path, self.check_task))
