@@ -2,22 +2,21 @@
 # coding: utf-8
 # -*- coding: utf-8 -*-
 
-import sys
-import os
 import json
+import os
+import sys
+
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QWidget
 
 import wiimote
-from vectortransform import VectorTransform
-from gesturerecognition import GestureRecognition
-from card import Card
+from helper.gesturerecognition import GestureRecognition
+from helper.vectortransform import VectorTransform
+from model.card import Card
 
 
 class ScrumBoard(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.CONNECTIONS_FILE = "wii.motes"
         self.wiimote = None
         self.my_vector_transform = VectorTransform()
         self.gesturerecognition = GestureRecognition()
@@ -87,13 +86,20 @@ class ScrumBoard(QtWidgets.QWidget):
                 if(button is "B"):
                     self.b_is_pressed = True
                 if(button is "A"):
+                    print("A pressed")
                     self.a_is_pressed = True
             else:
                 if(button is "B"):
                     self.b_is_pressed = False
                 if (button is "A"):
+                    print("A release")
                     self.a_is_pressed = False
+                    self.gesture_was_pressed = True
                     self.order_to_execute = self.gesturerecognition.get_current_gesture(self.gesture_point_path)
+                    if(self.order_to_execute == 3):
+                        print("Could not find fitting gesture")
+                        self.wiimote.rumble()
+                    self.gesture_point_path = []
 
     def on_wiimote_ir(self, event):
         self.ui.ir_label.setText(str(len(event)))
@@ -189,8 +195,8 @@ class ScrumBoard(QtWidgets.QWidget):
         if(self.order_to_execute):
             self.execute_order()
 
-    def paintEvent(self, QPaintEvent):
-        print("paint")
+    # def paintEvent(self, QPaintEvent):
+        #print("paint")
 
     def get_card_under_mouse(self):
         for c in self.all_cards:

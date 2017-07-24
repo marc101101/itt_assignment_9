@@ -204,15 +204,17 @@ class GestureRecognition:
          (3.9270743631770864, 57.91281002056099)]
 
     def get_current_gesture(self, recorded_path):
-        self.current_path = None
-        self.compare_array = None
-        self.current_path = self.custom_filter(recorded_path)
-        self.compare_array = []
-        self.compare_array.append(self.find_gesture(self.current_path, self.flash_bug))
-        self.compare_array.append(self.find_gesture(self.current_path, self.check_task))
-        self.compare_array.append(self.find_gesture(self.current_path, self.circle_epic))
+        if(len(recorded_path) >= 64):
+            self.current_path = None
+            self.compare_array = None
+            self.current_path = self.custom_filter(recorded_path)
+            self.compare_array = []
+            self.compare_array.append(self.find_gesture(self.current_path, self.flash_bug))
+            self.compare_array.append(self.find_gesture(self.current_path, self.check_task))
+            self.compare_array.append(self.find_gesture(self.current_path, self.circle_epic))
+        else:
+            return 3 # status for error
 
-        min(float(s) for s in self.compare_array)
         return self.compare_array.index(min(float(s) for s in self.compare_array))
 
     def find_gesture(self, current_path, compare_path):
