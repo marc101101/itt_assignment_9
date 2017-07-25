@@ -5,6 +5,7 @@
 import json
 import os
 import sys
+import atexit
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 
@@ -26,9 +27,12 @@ class ScrumBoard(QtWidgets.QWidget):
         self.b_is_pressed = False
         self.a_is_pressed = False
         self.mouse_is_released = False
+        self.current_moving_card = None
         self.card_moved_by_wii = False
         self.order_to_execute = None
         self.undo_last_order = False
+        self.move_card_right = False
+        self.move_card_left = False
         self.gesture_point_path = []
         self.all_cards = []
         self.bg_colors = ['background-color: rgb(85, 170, 255)', 'background-color: red', 'background-color: green']
@@ -54,8 +58,8 @@ class ScrumBoard(QtWidgets.QWidget):
                 self.ui.btn_connect_wiimote.setText("Connect")
             else:
                 self.ui.connection_button.setText("Disconnect")
-                self.ui.connection_status.setStyleSheet('background-color:rgb(0, 170, 0)')
-                self.ui.ir_1.setStyleSheet('background-color:rgb(0, 170, 0)')
+                self.ui.connection_status.setStyleSheet('background-color:rgb(0, 170, 0); border-radius: 3px')
+                self.ui.ir_1.setStyleSheet('background-color:rgb(0, 170, 0); border-radius: 3px')
                 self.ui.connection_status_label.setText("WII MOTE CONNECTED")
                 self.wiimote.buttons.register_callback(self.on_wiimote_button)
                 self.wiimote.ir.register_callback(self.on_wiimote_ir)
@@ -65,7 +69,7 @@ class ScrumBoard(QtWidgets.QWidget):
         self.wiimote.disconnect()
         self.wiimote = None
         self.ui.connection_button.setText("Connect")
-        self.ui.connection_status.setStyleSheet('background-color:rgb(255, 0, 0)')
+        self.ui.connection_status.setStyleSheet('background-color:rgb(255, 0, 0); border-radius: 3px')
         self.ui.connection_status_label.setText("NO WII MOTE CONNECTED")
 
     def toggle_connection_frame(self, event):
@@ -88,12 +92,14 @@ class ScrumBoard(QtWidgets.QWidget):
             if is_pressed:
                 if(button is "B"):
                     self.b_is_pressed = True
-                    self.card_moved_by_wii = True
+                    #self.card_moved_by_wii = True
                 if(button is "A"):
                     print("A pressed")
                     self.a_is_pressed = True
                 if (button is "Left"):
-                    self.undo_last_order = True
+                    self.move_card_left = True
+                if (button is "Right"):
+                    self.move_card_right = True
             else:
                 if(button is "B"):
                     self.b_is_pressed = False
@@ -106,6 +112,10 @@ class ScrumBoard(QtWidgets.QWidget):
                         print("Could not find fitting gesture")
                         self.wiimote.rumble()
                     self.gesture_point_path = []
+                if (button is "Left"):
+                    self.move_card_left = False
+                if (button is "Right"):
+                    self.move_card_right = False
 
     def on_wiimote_ir(self, event):
         self.ui.ir_label.setText(str(len(event)))
@@ -137,12 +147,9 @@ class ScrumBoard(QtWidgets.QWidget):
         self.ui = uic.loadUi("scrum_board_interface.ui", self)
         self.ui.connection_button.clicked.connect(self.toggle_wiimote_connection)
         self.ui.connection_input.setText("18:2A:7B:F4:AC:23")
-        #self.ui.delete_card.setVisible(True)
         self.config = self.parse_setup("data/data_structure.json")
         self.append_cards_to_ui()
         self.ui.create_new_card.clicked.connect(lambda: self.make_new_card("task"))
-
-        #self.all_cards.append(self.ui.scrumCard)
 
         self.show()
 
@@ -155,22 +162,36 @@ class ScrumBoard(QtWidgets.QWidget):
             print("Exception: " + e)
             pass
 
+    def save_setup(self, filename):
+        try:
+            location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+            with open(filename, 'w') as outfile:
+                json.dump(self.config, outfile)
+        except Exception as e:
+            print("Exception: " + e)
+            pass
+
     def append_cards_to_ui(self):
-        print("append")
+        print(self.config)
         for card_element in self.all_cards:
             card_element.setParent(None)
             self.all_cards.remove(card_element)
 
-        y_index = [0, 0, 0]
+        self.y_index = [0, 0, 0]
         self.all_cards = []
         for card_in_config in self.config["stored_elements"]:
-            card = Card(self, card_in_config["id"], card_in_config["title"], card_in_config["type"], card_in_config["assigned_to"])
             x_pos = 20 + self.get_distance_x_status(card_in_config["status"])
-            y_pos = 230 + (y_index[card_in_config["status"]]*150)
-            y_index[card_in_config["status"]] = y_index[card_in_config["status"]] + 1
+            y_pos = 230 + (self.y_index[card_in_config["status"]]*150)
+            card = Card(self, card_in_config["id"], card_in_config["title"], card_in_config["type"],
+                        card_in_config["assigned_to"], x_pos, y_pos, card_in_config["status"])
+            self.y_index[card_in_config["status"]] = self.y_index[card_in_config["status"]] + 1
 
             card.setGeometry(x_pos, y_pos, card.size().width(), card.size().height())
             self.all_cards.append(card)
+
+        print(self.y_index)
+
+        self.update()
 
     def get_distance_x_status(self, card_status):
         if(card_status == 0):
@@ -188,7 +209,8 @@ class ScrumBoard(QtWidgets.QWidget):
     def mouseMoveEvent(self, event):
         pos_x = event.pos().x()
         pos_y = event.pos().y()
-        if event.buttons() & QtCore.Qt.LeftButton or self.b_is_pressed:
+
+        if event.buttons() & QtCore.Qt.LeftButton:
             card_under_mouse = self.get_card_under_mouse()
             if card_under_mouse is not None:
                 card_under_mouse.setGeometry(pos_x, pos_y,
@@ -199,14 +221,27 @@ class ScrumBoard(QtWidgets.QWidget):
         if self.order_to_execute:
             self.execute_order()
 
-        if self.mouse_is_released or self.card_moved_by_wii:
-            self.card_moved_by_wii = False
-            self.mouse_is_released = False
-            self.release_card(event.pos().x(), event.pos().y())
+        if self.move_card_left:
+            self.move_card_left_method()
 
-        if self.undo_last_order:
-            self.undo_last_order = False
-            self.undo_last_order_method()
+        if self.move_card_right:
+            self.move_card_right_method()
+
+    def move_card_left_method(self):
+        print("LEFT")
+        card_under_mouse = self.get_card_under_mouse()
+        if card_under_mouse is not None:
+            if(card_under_mouse.status > 0):
+                self.current_moving_card = card_under_mouse
+                self.setStatus(card_under_mouse.status - 1)
+
+    def move_card_right_method(self):
+        print("RIGHT")
+        card_under_mouse = self.get_card_under_mouse()
+        if card_under_mouse is not None:
+            if (card_under_mouse.status < 2):
+                self.current_moving_card = card_under_mouse
+                self.setStatus(card_under_mouse.status + 1)
 
     def get_card_under_mouse(self):
         for card in self.all_cards:
@@ -216,31 +251,65 @@ class ScrumBoard(QtWidgets.QWidget):
 
     def mouseReleaseEvent(self, event):
         self.release_card(event.pos().x(), event.pos().y())
+        self.update()
 
     def release_card(self, x, y):
-        if (x <= 440):
-            self.setStatus(0)
-        if ((x >= 440) and (x <= 870)):
-            self.setStatus(1)
-        if (x >= 870):
-            self.setStatus(2)
-        self.append_cards_to_ui()
+        if y < 110 and x > 645:
+            self.delteCard()
+        else:
+            if (x <= 440):
+                self.setStatus(0)
+            if ((x >= 440) and (x <= 870)):
+                self.setStatus(1)
+            if (x >= 870):
+                self.setStatus(2)
 
     def undo_last_order_method(self):
         print("undooo")
 
     def setStatus(self, status_id):
-        print("STATUS")
+        if self.current_moving_card:
+            old_status = self.current_moving_card.status
+            for element in self.config["stored_elements"]:
+                if (element["id"] == self.current_moving_card.id):
+                    element["status"] = status_id
+                    self.current_moving_card.status = status_id
+            self.set_y_index()
+            self.moveCard(status_id)
+            self.updateOldRow(old_status)
+
+    def moveCard(self, status):
+        pos_y = 230 + ((self.y_index[status]-1)*150)
+        pos_x = 20 + self.get_distance_x_status(status)
+        self.current_moving_card.x = pos_x
+        self.current_moving_card.y = pos_y
+        self.current_moving_card.setGeometry(pos_x, pos_y,
+                                             self.current_moving_card.size().width(), self.current_moving_card.size().height())
+        self.update()
+
+    def set_y_index(self):
+        self.y_index = [0, 0, 0]
         for element in self.config["stored_elements"]:
-            if (element["id"] == self.current_moving_card.id):
-                element["status"] = status_id
-        #self.current_moving_card = None
+            self.y_index[int(element["status"])] = self.y_index[int(element["status"])] + 1
+
+    def updateOldRow(self, status):
+        counter = 0
+        for card in self.all_cards:
+            if card.status == status:
+                pos_y = 230 + (counter * 150)
+                card.y = pos_y
+                card.setGeometry(card.x, pos_y, self.current_moving_card.size().width(),
+                                                self.current_moving_card.size().height())
+                counter = counter + 1
+        self.update()
+        print(self.y_index)
+
 
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_B:
-            print("Key B")
-        if event.key() == QtCore.Qt.Key_A:
-            print("Key A")
+        if event.key() == QtCore.Qt.LeftArrow:
+            print("LEFT")
+        if event.key() == QtCore.Qt.RightArrow:
+            print("RIGHT")
 
         if event.type() == QtCore.QEvent.HoverMove:
             print('hover' + str(event))
@@ -255,21 +324,28 @@ class ScrumBoard(QtWidgets.QWidget):
           "assigned_to": "",
           "status": 0
         }
+        x_pos = 20 + self.get_distance_x_status(0)
+        y_pos = 230 + (self.y_index[0] * 150)
+        card = Card(self, new_id, "", type_element, "", x_pos, y_pos, 0)
+        self.y_index[0] = self.y_index[0] + 1
+        card.setGeometry(x_pos, y_pos, card.size().width(), card.size().height())
+        self.all_cards.append(card)
         self.config["stored_elements"].append(new_card_element)
-        self.append_cards_to_ui()
+
         print("make new card")
 
-    def register_if_deleted(self, posX, posY):
-        delete_button_pos_x1 = self.delete_card.x()
-        delete_button_pos_x2 = delete_button_pos_x1 + self.delete_card.width()
-        delete_button_pos_y1 = self.delete_card.y()
-        delete_button_pos_y2 = delete_button_pos_y1 + self.delete_card.height()
-        if delete_button_pos_x2 >= posX >= delete_button_pos_x1 and delete_button_pos_y1 <= posY <= delete_button_pos_y2:
-            card = self.get_card_under_mouse()
-            card.setParent(None)
-            self.all_cards.remove(card)
+    def delteCard(self):
+        self.all_cards.remove(self.current_moving_card)
+        for element in self.config["stored_elements"]:
+            if element["id"] == self.current_moving_card.id:
+                self.config["stored_elements"].remove(element)
+        self.updateOldRow(self.current_moving_card.status)
+        self.current_moving_card.setParent(None)
+        self.update()
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     scrum_board = ScrumBoard()
+    #atexit.register(scrum_board.save_setup("data/data_structure.json"))
     sys.exit(app.exec_())
