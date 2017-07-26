@@ -33,6 +33,7 @@ class ScrumBoard(QtWidgets.QWidget):
         self.undo_last_order = False
         self.move_card_right = False
         self.move_card_left = False
+        self.wii_order_delete_card = False
         self.gesture_point_path = []
         self.all_cards = []
         self.bg_colors = ['background-color: rgb(85, 170, 255)', 'background-color: red', 'background-color: green']
@@ -100,6 +101,15 @@ class ScrumBoard(QtWidgets.QWidget):
                     self.move_card_left = True
                 if (button is "Right"):
                     self.move_card_right = True
+                if (button is "Down"):
+                    print("SAVE")
+                if (button is "Up"):
+                    self.wii_order_delete_card = True
+                    print("DELETE")
+                if (button is "Plus"):
+                    print("REDO")
+                if (button is "Minus"):
+                    print("UNDO")
             else:
                 if(button is "B"):
                     self.b_is_pressed = False
@@ -108,6 +118,8 @@ class ScrumBoard(QtWidgets.QWidget):
                     self.a_is_pressed = False
                     self.gesture_was_pressed = True
                     self.order_to_execute = self.gesturerecognition.get_current_gesture(self.gesture_point_path)
+                    if(self.order_to_execute == 0):
+                        self.order_to_execute = 4
                     if(self.order_to_execute == 3):
                         print("Could not find fitting gesture")
                         self.wiimote.rumble()
@@ -132,7 +144,7 @@ class ScrumBoard(QtWidgets.QWidget):
 
     def execute_order(self):
         print("ORDER")
-        if(self.order_to_execute == 0):
+        if(self.order_to_execute == 4):
             print("Create BUG")
             self.make_new_card("bug")
         if(self.order_to_execute == 1):
@@ -219,6 +231,7 @@ class ScrumBoard(QtWidgets.QWidget):
                 self.current_cursor_point = [pos_x, pos_y]
 
         if self.order_to_execute:
+            self.order_to_execute
             self.execute_order()
 
         if self.move_card_left:
@@ -226,6 +239,14 @@ class ScrumBoard(QtWidgets.QWidget):
 
         if self.move_card_right:
             self.move_card_right_method()
+
+        if self.wii_order_delete_card:
+            self.wii_order_delete_card = False
+            card_under_mouse = self.get_card_under_mouse()
+            if card_under_mouse is not None:
+                self.current_moving_card = card_under_mouse
+                self.release_card(650, 100)
+
 
     def move_card_left_method(self):
         print("LEFT")
