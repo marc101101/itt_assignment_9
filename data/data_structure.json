@@ -1,1 +1,5 @@
-{"stored_elements": [{"title": "This is the first Task", "assigned_to": "markus", "id": 1, "status": 0, "type": "bug"}, {"title": "This is the second Task", "assigned_to": "gina", "id": 2, "status": 1, "type": "epic"}, {"title": "This is the third Task", "assigned_to": "wimmer", "id": 3, "status": 0, "type": "task"}, {"title": "This is the fourth Task", "assigned_to": "wimmer2", "id": 4, "status": 2, "type": "task"}, {"title": "This is the xxxfourth Task", "assigned_to": "wimmer2", "id": 5, "status": 1, "type": "task"}]}
+[{"type": "task", "status": 2, "id": 1, "title": "Assignment 9 Implementierung", "assigned_to": "Markus Guder"},
+  {"type": "bug", "status": 2, "id": 2, "title": "Bug erstellen funktioniert nicht mit WiiMote", "assigned_to": "Gina Maria Wolff"},
+  {"type": "task", "status": 1, "id": 4, "title": "Assignment 9 Dokumentation", "assigned_to": "Gina Maria Wolf"},
+  {"type": "task", "status": 1, "id": 5, "title": "Assignment 9 pr\u00e4sentieren", "assigned_to": "Gina Maria Wolf"},
+  {"type": "task", "status": 2, "id": 6, "title": "Assignment 8 Feedbackgespr\u00e4ch f\u00fchren", "assigned_to": "Gina Maria Wolf / Markus Guder"}]

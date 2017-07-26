@@ -145,7 +145,6 @@
     <property name="frameShadow">
      <enum>QFrame::Raised</enum>
     </property>
-    <zorder>frame</zorder>
    </widget>
   </widget>
   <widget class="QFrame" name="config">
@@ -351,9 +350,9 @@
    <widget class="QFrame" name="connection_status_2">
     <property name="geometry">
      <rect>
-      <x>640</x>
+      <x>760</x>
       <y>20</y>
-      <width>671</width>
+      <width>551</width>
       <height>101</height>
      </rect>
     </property>
@@ -369,9 +368,9 @@
     <widget class="QLabel" name="connection_status_label_2">
      <property name="geometry">
       <rect>
-       <x>0</x>
+       <x>10</x>
        <y>5</y>
-       <width>671</width>
+       <width>531</width>
        <height>91</height>
       </rect>
      </property>
@@ -385,6 +384,22 @@
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
+   </widget>
+   <widget class="QPushButton" name="save_state">
+    <property name="geometry">
+     <rect>
+      <x>640</x>
+      <y>20</y>
+      <width>101</width>
+      <height>101</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color:white; border-radius: 3px</string>
+    </property>
+    <property name="text">
+     <string>SAVE</string>
+    </property>
    </widget>
   </widget>
   <widget class="QFrame" name="done_area">
