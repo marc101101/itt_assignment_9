@@ -45,19 +45,16 @@ class ScrumBoard(QtWidgets.QWidget):
 
     def toggle_wiimote_connection(self):
         if self.wiimote is not None:
-            self.disconnect_wiimote()
+            self.wiimote_disconnect()
             return
-        self.connect_wiimote()
+        self.wiimote_connect()
 
     def wiimote_connect(self):
         address_to_connect = self.ui.connection_input.text()
         if address_to_connect is not "":
             self.wiimote = wiimote.connect(address_to_connect)
 
-            if self.wiimote is None:
-                self.ui.btn_connect_wiimote.setText("Connect")
-            else:
-                self.ui.connection_button.setText("Disconnect")
+            if self.wiimote is not None:
                 self.ui.connection_status.setStyleSheet('background-color:rgb(0, 170, 0); border-radius: 3px')
                 self.ui.ir_1.setStyleSheet('background-color:rgb(0, 170, 0); border-radius: 3px')
                 self.ui.connection_status_label.setText("WII MOTE CONNECTED")
@@ -70,17 +67,6 @@ class ScrumBoard(QtWidgets.QWidget):
         self.ui.connection_button.setText("Connect")
         self.ui.connection_status.setStyleSheet('background-color:rgb(255, 0, 0); border-radius: 3px')
         self.ui.connection_status_label.setText("NO WII MOTE CONNECTED")
-
-    def scan_for_wiimotes(self, event):
-        self.ui.btn_scan_wiimotes.setText("Scanning...")
-        self.ui.list_available_wiimotes.clear()
-        results = wiimote.find()
-        for mote in results:
-            address, name = mote
-            self.ui.list_available_wiimotes.addItem(address)
-        if len(results) > 0:
-            self.ui.list_available_wiimotes.setCurrentRow(0)
-        self.ui.btn_scan_wiimotes.setText("Scan")
 
     def on_wiimote_button(self, event):
         if len(event) is not 0:
