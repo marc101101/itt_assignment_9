@@ -19,9 +19,7 @@ class ScrumBoard(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.wiimote = None
-        self.map_wii_mote_data = MapWiiMoteData()
-        self.gesture_recognition = GestureRecognition()
-        self.setMouseTracking(True)
+
         self.config = None
         self.current_cursor_point = None
         self.b_is_pressed = False
@@ -35,12 +33,17 @@ class ScrumBoard(QtWidgets.QWidget):
         self.move_card_left = False
         self.save_current_state = False
         self.wii_order_delete_card = False
+
         self.history_index = 0
         self.gesture_point_path = []
         self.all_cards = []
         self.history_object = []
         self.filename = "data/data_structure.json"
         self.bg_colors = ['background-color: rgb(85, 170, 255)', 'background-color: red', 'background-color: green']
+
+        self.map_wii_mote_data = MapWiiMoteData()
+        self.gesture_recognition = GestureRecognition()
+        self.setMouseTracking(True)
         self.init_ui()
 
     def toggle_wiimote_connection(self):
@@ -103,7 +106,7 @@ class ScrumBoard(QtWidgets.QWidget):
             vector_array = []
             for current_led in event:
                 vector_array.append((current_led["x"], current_led["y"]))
-            x, y = self.map_wii_mote_data.transform(vector_array, self.size().width(), self.size().height())
+            x, y = self.map_wii_mote_data.convert_vectors(vector_array, self.size().width(), self.size().height())
             QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(x, y)))
 
             if self.a_is_pressed:
