@@ -12,7 +12,7 @@ from PyQt5 import uic, QtWidgets, QtCore, QtGui
 import wiimote
 from helper.gesturerecognition import GestureRecognition
 from helper.mapwiimotedata import MapWiiMoteData
-from model.card import Card
+from model.task import Task
 
 
 class ScrumBoard(QtWidgets.QWidget):
@@ -25,18 +25,18 @@ class ScrumBoard(QtWidgets.QWidget):
         self.b_is_pressed = False
         self.a_is_pressed = False
         self.mouse_is_released = False
-        self.current_moving_card = None
-        self.card_moved_by_wii = False
+        self.current_moving_task = None
+        self.task_moved_by_wii = False
         self.order_to_execute = None
         self.undo_last_order = False
-        self.move_card_right = False
-        self.move_card_left = False
+        self.move_task_right = False
+        self.move_task_left = False
         self.save_current_state = False
-        self.wii_order_delete_card = False
+        self.wii_order_delete_task = False
 
         self.history_index = 0
         self.gesture_point_path = []
-        self.all_cards = []
+        self.all_tasks = []
         self.history_object = []
         self.filename = "data/data_structure.json"
         self.bg_colors = ['background-color: rgb(85, 170, 255)', 'background-color: red', 'background-color: green']
@@ -79,14 +79,14 @@ class ScrumBoard(QtWidgets.QWidget):
                     self.b_is_pressed = True
                 if(button is "A"):
                     self.a_is_pressed = True
-                if (button is "Left") and (self.move_card_left == False):
-                    self.move_card_left = True
-                if (button is "Right") and (self.move_card_right == False):
-                    self.move_card_right = True
+                if (button is "Left") and (self.move_task_left == False):
+                    self.move_task_left = True
+                if (button is "Right") and (self.move_task_right == False):
+                    self.move_task_right = True
                 if (button is "Down"):
                     self.save_current_state = True
                 if (button is "Up"):
-                    self.wii_order_delete_card = True
+                    self.wii_order_delete_task = True
                 if (button is "Minus"):
                     self.undo_last_order = True
             else:
@@ -114,9 +114,9 @@ class ScrumBoard(QtWidgets.QWidget):
 
     def execute_order(self):
         if(self.order_to_execute == 1):
-            self.make_new_card("task")
+            self.make_new_task("task")
         if(self.order_to_execute == 2):
-            self.make_new_card("bug")
+            self.make_new_task("bug")
         self.order_to_execute = None
 
     def init_ui(self):
@@ -124,8 +124,8 @@ class ScrumBoard(QtWidgets.QWidget):
         self.ui.connection_button.clicked.connect(self.toggle_wiimote_connection)
         self.ui.connection_input.setText("18:2A:7B:F4:AC:23")
         self.config = self.parse_setup()
-        self.append_cards_to_ui()
-        self.ui.create_new_card.clicked.connect(lambda: self.make_new_card("task"))
+        self.append_tasks_to_ui()
+        self.ui.create_new_task.clicked.connect(lambda: self.make_new_task("task"))
         self.show()
 
     def parse_setup(self):
@@ -146,66 +146,66 @@ class ScrumBoard(QtWidgets.QWidget):
             print("Exception: " + e)
             pass
 
-    def append_cards_to_ui(self):
-        for card_element in self.all_cards:
-            card_element.setParent(None)
-            self.all_cards.remove(card_element)
+    def append_tasks_to_ui(self):
+        for task_elements in self.all_tasks:
+            task_elements.setParent(None)
+            self.all_tasks.remove(task_elements)
 
         self.y_index = [0, 0, 0]
-        self.all_cards = []
-        for card_in_config in self.config:
-            x_pos = 20 + self.get_distance_x_status(card_in_config["status"])
-            y_pos = 230 + (self.y_index[card_in_config["status"]]*150)
-            card = Card(self, card_in_config["id"], card_in_config["title"], card_in_config["type"],
-                        card_in_config["assigned_to"], x_pos, y_pos, card_in_config["status"])
-            self.y_index[card_in_config["status"]] = self.y_index[card_in_config["status"]] + 1
+        self.all_tasks = []
+        for task_in_config in self.config:
+            x_pos = 20 + self.get_distance_x_status(task_in_config["status"])
+            y_pos = 230 + (self.y_index[task_in_config["status"]]*150)
+            task = Task(self, task_in_config["id"], task_in_config["title"], task_in_config["type"],
+                        task_in_config["assigned_to"], x_pos, y_pos, task_in_config["status"])
+            self.y_index[task_in_config["status"]] = self.y_index[task_in_config["status"]] + 1
 
-            card.setGeometry(x_pos, y_pos, card.size().width(), card.size().height())
-            self.all_cards.append(card)
+            task.setGeometry(x_pos, y_pos, task.size().width(), task.size().height())
+            self.all_tasks.append(task)
 
         self.update()
 
-    def get_distance_x_status(self, card_status):
-        if(card_status == 0):
+    def get_distance_x_status(self, task_status):
+        if(task_status == 0):
             return 0
-        if(card_status == 1):
+        if(task_status == 1):
             return 435
-        if(card_status == 2):
+        if(task_status == 2):
             return 880
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
-            if self.ui.create_new_card.underMouse():
-                self.make_new_card("task")
+            if self.ui.create_new_task.underMouse():
+                self.make_new_task("task")
 
     def mouseMoveEvent(self, event):
         pos_x = event.pos().x()
         pos_y = event.pos().y()
 
         if event.buttons() & QtCore.Qt.LeftButton:
-            card_under_mouse = self.get_card_under_mouse()
-            if card_under_mouse is not None:
-                card_under_mouse.setGeometry(pos_x, pos_y,
-                                             card_under_mouse.size().width(), card_under_mouse.size().height())
-                self.current_moving_card = card_under_mouse
+            task_under_mouse = self.get_task_under_mouse()
+            if task_under_mouse is not None:
+                task_under_mouse.setGeometry(pos_x, pos_y,
+                                             task_under_mouse.size().width(), task_under_mouse.size().height())
+                self.current_moving_task = task_under_mouse
                 self.current_cursor_point = [pos_x, pos_y]
 
         if self.order_to_execute:
             self.order_to_execute
             self.execute_order()
 
-        if self.move_card_left:
-            self.move_card_left_method()
+        if self.move_task_left:
+            self.move_task_left_method()
 
-        if self.move_card_right:
-            self.move_card_right_method()
+        if self.move_task_right:
+            self.move_task_right_method()
 
-        if self.wii_order_delete_card:
-            self.wii_order_delete_card = False
-            card_under_mouse = self.get_card_under_mouse()
-            if card_under_mouse is not None:
-                self.current_moving_card = card_under_mouse
-                self.release_card(650, 100)
+        if self.wii_order_delete_task:
+            self.wii_order_delete_task = False
+            task_under_mouse = self.get_task_under_mouse()
+            if task_under_mouse is not None:
+                self.current_moving_task = task_under_mouse
+                self.release_task(650, 100)
 
         if self.undo_last_order:
             self.undo_last_order = False
@@ -217,43 +217,43 @@ class ScrumBoard(QtWidgets.QWidget):
 
     def collect_data(self):
         elements_to_store = []
-        for card in self.all_cards:
+        for task in self.all_tasks:
             elements_to_store.append({
-                "id": card.id,
-                "title": card.title_edit.text(),
-                "type": card.type_edit.text(),
-                "assigned_to": card.assigned_to_edit.text(),
-                "status": card.status
+                "id": task.id,
+                "title": task.title_edit.text(),
+                "type": task.type_edit.text(),
+                "assigned_to": task.assigned_to_edit.text(),
+                "status": task.status
             })
         return elements_to_store
 
-    def move_card_left_method(self):
-        card_under_mouse = self.get_card_under_mouse()
-        if card_under_mouse is not None:
-            if(card_under_mouse.status > 0):
-                self.current_moving_card = card_under_mouse
-                self.setStatus(card_under_mouse.status - 1)
+    def move_task_left_method(self):
+        task_under_mouse = self.get_task_under_mouse()
+        if task_under_mouse is not None:
+            if(task_under_mouse.status > 0):
+                self.current_moving_task = task_under_mouse
+                self.setStatus(task_under_mouse.status - 1)
 
-    def move_card_right_method(self):
-        card_under_mouse = self.get_card_under_mouse()
-        if card_under_mouse is not None:
-            if (card_under_mouse.status < 2):
-                self.current_moving_card = card_under_mouse
-                self.setStatus(card_under_mouse.status + 1)
+    def move_task_right_method(self):
+        task_under_mouse = self.get_task_under_mouse()
+        if task_under_mouse is not None:
+            if (task_under_mouse.status < 2):
+                self.current_moving_task = task_under_mouse
+                self.setStatus(task_under_mouse.status + 1)
 
-    def get_card_under_mouse(self):
-        for card in self.all_cards:
-            if card.underMouse() is True:
-                return card
+    def get_task_under_mouse(self):
+        for task in self.all_tasks:
+            if task.underMouse() is True:
+                return task
         return None
 
     def mouseReleaseEvent(self, event):
-        self.release_card(event.pos().x(), event.pos().y())
+        self.release_task(event.pos().x(), event.pos().y())
         self.update()
 
-    def release_card(self, x, y):
+    def release_task(self, x, y):
         if y < 110 and x > 645:
-            self.delteCard()
+            self.delteTask()
         else:
             if (x <= 440):
                 self.setStatus(0)
@@ -268,7 +268,7 @@ class ScrumBoard(QtWidgets.QWidget):
             self.history_index = self.history_index + 1
             if last_order["order"] == "delete":
                 self.set_y_index()
-                new_card_element = {
+                new_task_element = {
                     "id": last_order["obj"].id,
                     "title": last_order["obj"].title_text,
                     "type": last_order["obj"].type_text,
@@ -277,39 +277,39 @@ class ScrumBoard(QtWidgets.QWidget):
                 }
                 x_pos = 20 + self.get_distance_x_status(0)
                 y_pos = 230 + (self.y_index[0] * 150)
-                card = Card(self, last_order["obj"].id, last_order["obj"].title_text, last_order["obj"].type_text,
+                task = Task(self, last_order["obj"].id, last_order["obj"].title_text, last_order["obj"].type_text,
                             last_order["obj"].assigned_to_text, x_pos, y_pos, last_order["obj"].status)
                 self.y_index[0] = self.y_index[0] + 1
-                card.setGeometry(x_pos, y_pos, card.size().width(), card.size().height())
-                self.all_cards.append(card)
-                self.config.append(new_card_element)
+                task.setGeometry(x_pos, y_pos, task.size().width(), task.size().height())
+                self.all_tasks.append(task)
+                self.config.append(new_task_element)
 
                 self.history_object[len(self.history_object) - 1]["order"] = "create"
-                self.history_object[len(self.history_object) - 1]["obj"] = card
+                self.history_object[len(self.history_object) - 1]["obj"] = task
 
             self.update()
 
     def setStatus(self, status_id):
-        if self.current_moving_card:
-            old_status = self.current_moving_card.status
+        if self.current_moving_task:
+            old_status = self.current_moving_task.status
             for element in self.config:
-                if (element["id"] == self.current_moving_card.id):
+                if (element["id"] == self.current_moving_task.id):
                     element["status"] = status_id
-                    self.current_moving_card.status = status_id
+                    self.current_moving_task.status = status_id
             self.set_y_index()
-            self.moveCard(status_id)
+            self.moveTask(status_id)
             self.updateOldRow(old_status)
 
-    def moveCard(self, status):
+    def moveTask(self, status):
         pos_y = 230 + ((self.y_index[status]-1)*150)
         pos_x = 20 + self.get_distance_x_status(status)
-        self.current_moving_card.x = pos_x
-        self.current_moving_card.y = pos_y
-        self.current_moving_card.setGeometry(pos_x, pos_y,
-                                             self.current_moving_card.size().width(), self.current_moving_card.size().height())
+        self.current_moving_task.x = pos_x
+        self.current_moving_task.y = pos_y
+        self.current_moving_task.setGeometry(pos_x, pos_y,
+                                             self.current_moving_task.size().width(), self.current_moving_task.size().height())
         self.update()
-        self.move_card_left = False
-        self.move_card_right = False
+        self.move_task_left = False
+        self.move_task_right = False
 
 
     def set_y_index(self):
@@ -319,18 +319,18 @@ class ScrumBoard(QtWidgets.QWidget):
 
     def updateOldRow(self, status):
         counter = 0
-        for card in self.all_cards:
-            if card.status == status:
+        for task in self.all_tasks:
+            if task.status == status:
                 pos_y = 230 + (counter * 150)
-                card.y = pos_y
-                card.setGeometry(card.x, pos_y, self.current_moving_card.size().width(),
-                                                self.current_moving_card.size().height())
+                task.y = pos_y
+                task.setGeometry(task.x, pos_y, self.current_moving_task.size().width(),
+                                 self.current_moving_task.size().height())
                 counter = counter + 1
         self.update()
 
-    def make_new_card(self, type_element):
+    def make_new_task(self, type_element):
         new_id = len(self.config) + 1
-        new_card_element = {
+        new_task_element = {
           "id": new_id,
           "title": "",
           "type": type_element,
@@ -339,23 +339,23 @@ class ScrumBoard(QtWidgets.QWidget):
         }
         x_pos = 20 + self.get_distance_x_status(0)
         y_pos = 230 + (self.y_index[0] * 150)
-        card = Card(self, new_id, "", type_element, "", x_pos, y_pos, 0)
+        task = Task(self, new_id, "", type_element, "", x_pos, y_pos, 0)
         self.y_index[0] = self.y_index[0] + 1
-        card.setGeometry(x_pos, y_pos, card.size().width(), card.size().height())
-        self.all_cards.append(card)
-        self.config.append(new_card_element)
-        self.history_object.append({"order": "create", "obj": card})
+        task.setGeometry(x_pos, y_pos, task.size().width(), task.size().height())
+        self.all_tasks.append(task)
+        self.config.append(new_task_element)
+        self.history_object.append({"order": "create", "obj": task})
 
-    def delteCard(self):
-        self.all_cards.remove(self.current_moving_card)
+    def delteTask(self):
+        self.all_tasks.remove(self.current_moving_task)
         for element in self.config:
-            if element["id"] == self.current_moving_card.id:
+            if element["id"] == self.current_moving_task.id:
                 self.config.remove(element)
-        self.updateOldRow(self.current_moving_card.status)
-        self.current_moving_card.setParent(None)
+        self.updateOldRow(self.current_moving_task.status)
+        self.current_moving_task.setParent(None)
         self.update()
         self.set_y_index()
-        self.history_object.append({"order": "delete", "obj": self.current_moving_card})
+        self.history_object.append({"order": "delete", "obj": self.current_moving_task})
 
 
 if __name__ == '__main__':

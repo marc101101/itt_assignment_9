@@ -5,9 +5,9 @@
 from PyQt5.QtWidgets import QFrame, QLineEdit, QPlainTextEdit, QLabel
 
 
-class Card(QFrame):
+class Task(QFrame):
     def __init__(self, parent, id, title_text, type_text, assigned_to_text, x, y, status):
-        super(Card, self).__init__()
+        super(Task, self).__init__()
         self.id = id
         self.title_text = title_text
         self.type_text = type_text
