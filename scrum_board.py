@@ -11,7 +11,7 @@ from PyQt5 import uic, QtWidgets, QtCore, QtGui
 
 import wiimote
 from helper.gesturerecognition import GestureRecognition
-from helper.vectortransform import VectorTransform
+from helper.mapwiimotedata import MapWiiMoteData
 from model.card import Card
 
 
@@ -19,8 +19,8 @@ class ScrumBoard(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.wiimote = None
-        self.my_vector_transform = VectorTransform()
-        self.gesturerecognition = GestureRecognition()
+        self.map_wii_mote_data = MapWiiMoteData()
+        self.gesture_recognition = GestureRecognition()
         self.setMouseTracking(True)
         self.config = None
         self.current_cursor_point = None
@@ -49,15 +49,10 @@ class ScrumBoard(QtWidgets.QWidget):
             return
         self.connect_wiimote()
 
-    def connect_wiimote(self):
-        address = self.ui.connection_input.text()
-        if address is not "":
-            try:
-                self.wiimote = wiimote.connect(address)
-            except Exception:
-                QtWidgets.QMessageBox.critical(self, "Error", "Could not connect to " + address + "!")
-                self.ui.btn_connect_wiimote.setText("Connect")
-                return
+    def wiimote_connect(self):
+        address_to_connect = self.ui.connection_input.text()
+        if address_to_connect is not "":
+            self.wiimote = wiimote.connect(address_to_connect)
 
             if self.wiimote is None:
                 self.ui.btn_connect_wiimote.setText("Connect")
@@ -68,17 +63,13 @@ class ScrumBoard(QtWidgets.QWidget):
                 self.ui.connection_status_label.setText("WII MOTE CONNECTED")
                 self.wiimote.buttons.register_callback(self.on_wiimote_button)
                 self.wiimote.ir.register_callback(self.on_wiimote_ir)
-                self.wiimote.rumble()
 
-    def disconnect_wiimote(self):
+    def wiimote_disconnect(self):
         self.wiimote.disconnect()
         self.wiimote = None
         self.ui.connection_button.setText("Connect")
         self.ui.connection_status.setStyleSheet('background-color:rgb(255, 0, 0); border-radius: 3px')
         self.ui.connection_status_label.setText("NO WII MOTE CONNECTED")
-
-    def toggle_connection_frame(self, event):
-        self.ui.fr_connection.setVisible(not self.ui.fr_connection.isVisible())
 
     def scan_for_wiimotes(self, event):
         self.ui.btn_scan_wiimotes.setText("Scanning...")
@@ -97,33 +88,26 @@ class ScrumBoard(QtWidgets.QWidget):
             if is_pressed:
                 if(button is "B"):
                     self.b_is_pressed = True
-                    #self.card_moved_by_wii = True
                 if(button is "A"):
-                    print("A pressed")
                     self.a_is_pressed = True
                 if (button is "Left") and (self.move_card_left == False):
                     self.move_card_left = True
                 if (button is "Right") and (self.move_card_right == False):
                     self.move_card_right = True
                 if (button is "Down"):
-                    print("SAVE")
                     self.save_current_state = True
                 if (button is "Up"):
                     self.wii_order_delete_card = True
-                    print("DELETE")
                 if (button is "Minus"):
                     self.undo_last_order = True
-                    print("UNDO")
             else:
                 if(button is "B"):
                     self.b_is_pressed = False
                 if (button is "A"):
-                    print("A release")
                     self.a_is_pressed = False
                     self.gesture_was_pressed = True
-                    self.order_to_execute = self.gesturerecognition.get_current_gesture(self.gesture_point_path)
+                    self.order_to_execute = self.gesture_recognition.get_current_gesture(self.gesture_point_path)
                     if(self.order_to_execute == 3):
-                        print("Could not find fitting gesture")
                         self.wiimote.rumble()
                     self.gesture_point_path = []
 
@@ -133,19 +117,16 @@ class ScrumBoard(QtWidgets.QWidget):
             vector_array = []
             for current_led in event:
                 vector_array.append((current_led["x"], current_led["y"]))
-            x, y = self.my_vector_transform.transform(vector_array, self.size().width(), self.size().height())
+            x, y = self.map_wii_mote_data.transform(vector_array, self.size().width(), self.size().height())
             QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(x, y)))
 
             if self.a_is_pressed:
-                print("appended")
                 self.gesture_point_path.append((x, y))
 
     def execute_order(self):
         if(self.order_to_execute == 1):
-            print("Create TASK")
             self.make_new_card("task")
         if(self.order_to_execute == 2):
-            print("Create Epic")
             self.make_new_card("bug")
         self.order_to_execute = None
 
@@ -156,7 +137,6 @@ class ScrumBoard(QtWidgets.QWidget):
         self.config = self.parse_setup()
         self.append_cards_to_ui()
         self.ui.create_new_card.clicked.connect(lambda: self.make_new_card("task"))
-
         self.show()
 
     def parse_setup(self):
@@ -259,7 +239,6 @@ class ScrumBoard(QtWidgets.QWidget):
         return elements_to_store
 
     def move_card_left_method(self):
-        print("LEFT")
         card_under_mouse = self.get_card_under_mouse()
         if card_under_mouse is not None:
             if(card_under_mouse.status > 0):
@@ -267,7 +246,6 @@ class ScrumBoard(QtWidgets.QWidget):
                 self.setStatus(card_under_mouse.status - 1)
 
     def move_card_right_method(self):
-        print("RIGHT")
         card_under_mouse = self.get_card_under_mouse()
         if card_under_mouse is not None:
             if (card_under_mouse.status < 2):
@@ -334,7 +312,6 @@ class ScrumBoard(QtWidgets.QWidget):
             self.updateOldRow(old_status)
 
     def moveCard(self, status):
-        print(self.y_index)
         pos_y = 230 + ((self.y_index[status]-1)*150)
         pos_x = 20 + self.get_distance_x_status(status)
         self.current_moving_card.x = pos_x
