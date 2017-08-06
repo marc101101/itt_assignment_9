@@ -1,13 +1,9 @@
-# !/usr/bin/env python3
-# coding: utf-8
-# -*- coding: utf-8 -*-
-
-from PyQt5.QtWidgets import QFrame, QLineEdit, QPlainTextEdit, QLabel
+from PyQt5.QtWidgets import QFrame, QLineEdit, QLabel
 
 
-class Task(QFrame):
+class Ticket(QFrame):
     def __init__(self, parent, id, title_text, type_text, assigned_to_text, x, y, status):
-        super(Task, self).__init__()
+        super(Ticket, self).__init__()
         self.id = id
         self.title_text = title_text
         self.type_text = type_text
@@ -25,10 +21,10 @@ class Task(QFrame):
         self.assigned_to = QLabel()
         self.assigned_to_edit = QLineEdit()
 
-        self.setup_frame()
-        self.setup_title()
-        self.setup_type()
-        self.setup_assigned_to()
+        self.ui_set_frame()
+        self.ui_set_title()
+        self.ui_set_type()
+        self.ui_set_assigned_to()
         self.setMouseTracking(True)
 
     def getColor(self):
@@ -40,12 +36,12 @@ class Task(QFrame):
         if self.type_text == "bug":
             return "#ff5252"
 
-    def setup_frame(self):
+    def ui_set_frame(self):
         self.setStyleSheet('background-color: white; border-radius: 3px')
         self.resize(390, 130)
         self.setVisible(True)
 
-    def setup_title(self):
+    def ui_set_title(self):
         self.tpye_frame.setParent(self)
         self.tpye_frame.resize(5, 140)
         self.tpye_frame.move(0, 0)
@@ -66,7 +62,7 @@ class Task(QFrame):
         self.title_edit.setStyleSheet('background-color: white;')
         self.title_edit.setVisible(True)
 
-    def setup_type(self):
+    def ui_set_type(self):
         self.type.resize(68, 21)
         self.type.move(20, 50)
         self.type.setText("TYPE:")
@@ -81,7 +77,7 @@ class Task(QFrame):
         self.type_edit.setStyleSheet('background-color: white')
         self.type_edit.setVisible(True)
 
-    def setup_assigned_to(self):
+    def ui_set_assigned_to(self):
         self.assigned_to.resize(68, 21)
         self.assigned_to.move(20, 90)
         self.assigned_to.setText("ASSIGN:")
@@ -95,4 +91,10 @@ class Task(QFrame):
         self.assigned_to_edit.setParent(self)
         self.assigned_to_edit.setStyleSheet('background-color: white')
         self.assigned_to_edit.setVisible(True)
+
+    def setTitleText(self, text):
+        self.title_text = text
+
+    def setAssignedToText(self, text):
+        self.assigned_to_text = text
 
