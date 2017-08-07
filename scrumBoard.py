@@ -52,8 +52,8 @@ class ScrumBoard(QtWidgets.QWidget):
     # Inits the basic ui elements by loading the .ui file
     def init_ui(self):
         self.ui = uic.loadUi("scrum_board_interface.ui", self)
-        self.ui.connection_button.clicked.connect(self.wiimote_check_connection_status)
-        self.ui.connection_input.setText("18:2A:7B:F4:AC:23")
+        self.ui.connection_button.clicked.connect(lambda: self.wiimote_connect())
+        self.ui.connection_input.setText("B8:AE:6E:1B:A3:8B")
         self.config = self.file_operation.parse_setup()
 
         self.append_tickets_to_ui()
@@ -61,16 +61,6 @@ class ScrumBoard(QtWidgets.QWidget):
         self.show()
 
     # ---------------------- WIIMOTE METHODS ----------------------
-
-    # Checks if a the wiimote controller is connected or not
-    def wiimote_check_connection_status(self):
-        if self.wiimote_controller is None:
-            self.wiimote_connect()
-
-        if self.wiimote_controller is not None:
-            self.wiimote_disconnect()
-            return
-
 
     # Connects to wiimote controller and updates ui elements which should a successful connection
     def wiimote_connect(self):
@@ -84,14 +74,6 @@ class ScrumBoard(QtWidgets.QWidget):
                 self.ui.connection_status_label.setText("WII MOTE CONNECTED")
                 self.wiimote_controller.buttons.register_callback(self.wiimote_button_pressed)
                 self.wiimote_controller.ir.register_callback(self.wiimote_infra_red_data)
-
-    # Disconnects wii controller
-    def wiimote_disconnect(self):
-        self.wiimote_controller.disconnect()
-        self.ui.connection_button.setText("Connect")
-        self.ui.connection_status.setStyleSheet('background-color:rgb(255, 0, 0); border-radius: 3px')
-        self.ui.connection_status_label.setText("NO WII MOTE CONNECTED")
-        self.wiimote_controller = None
 
     # Handels any pressed button event
     def wiimote_button_pressed(self, event):

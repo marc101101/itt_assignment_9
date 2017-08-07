@@ -20,7 +20,7 @@ class FileOperations:
             with open(self.filename, 'w') as outfile:
                 json.dump(elements_to_store, outfile)
         except Exception as e:
-            print("Exception: " + e)
+            print("Exception: " + str(e))
             pass
 
     # Reads data from data_structure.json
@@ -30,5 +30,5 @@ class FileOperations:
             with open(os.path.join(location, self.filename)) as config_file:
                 return json.load(config_file)
         except Exception as e:
-            print("Exception: " + e)
+            print("Exception: " + str(e))
             pass

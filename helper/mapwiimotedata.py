@@ -54,12 +54,13 @@ class MapWiiMoteData:
         unit_to_dest = self.ir_data_transfrom(dx1, dx2, dx3, dx4, dy1, dy2, dy3, dy4)
 
         try:
-            # To map a location  (x,y)(x,y) from the source image
-            # to its corresponding location in the destination image, compute the product
-            source_to_destination = unit_to_dest @ inv(unit_to_source)
-            x, y, z = [float(w) for w in (source_to_destination @ matrix([[512], [384], [1]]))]
-        except Exception as e:
-            print(e)
+            ir_data_source = inv(unit_to_source)
+        except Exception:
+            return 0, 0
+        # To map a location  (x,y)(x,y) from the source image
+        # to its corresponding location in the destination image, compute the product
+        source_to_destination = unit_to_dest @ ir_data_source
+        x, y, z = [float(w) for w in (source_to_destination @ matrix([[512], [384], [1]]))]
 
         return x / z, y / z
 
