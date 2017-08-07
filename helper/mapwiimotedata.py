@@ -1,8 +1,13 @@
-from pylab import *
-from numpy import *
+#!/usr/bin/env python3
+# coding: utf-8
+# -*- coding: utf-8 -*-
 
+# This file was edited by Gina Maria Wolf and Markus Guder
 # Class is based on Jupiter Notebook
 # https://elearning.uni-regensburg.de/mod/resource/view.php?id=851289
+# Source - 1: https://stackoverflow.com/questions/30636014/how-to-order-a-list-of-points-by-distance-to-a-given-point
+
+from pylab import *
 
 class MapWiiMoteData:
     def __init__(self):
@@ -11,7 +16,28 @@ class MapWiiMoteData:
     def convert_vectors(self, ir_sensors, width, height):
         self.SCREEN_WIDTH = width
         self.SCREEN_HEIGHT = height
-        ir_sensors = self.sort_ir_data_by_y(ir_sensors)
+
+        # We sort the ir_data by the y position
+        # depending on the that we can set which ir_data points are on which position
+        # at least depending on the every x position of each point the element have to be rearranged
+        # Source 1
+        arranged_by_y = sorted(ir_sensors, key=lambda led: [led[1], led[0]])
+
+        position_x_1, position_y_1 = arranged_by_y[0]
+        positon_x_2, position_y_2 = arranged_by_y[1]
+
+        if position_x_1 > positon_x_2:
+            arranged_by_y[1] = (position_x_1, position_y_1)
+            arranged_by_y[0] = (positon_x_2, position_y_2)
+
+        position_x_1, position_y_1 = arranged_by_y[2]
+        positon_x_2, position_y_2 = arranged_by_y[3]
+
+        if position_x_1 < positon_x_2:
+            arranged_by_y[3] = position_x_1, position_y_1
+            arranged_by_y[2] = positon_x_2, position_y_2
+
+        ir_sensors = arranged_by_y
 
         # Four IR markers indicating the corners of the display with which we interact
         sx1, sy1 = ir_sensors[0]
@@ -28,14 +54,12 @@ class MapWiiMoteData:
         unit_to_dest = self.ir_data_transfrom(dx1, dx2, dx3, dx4, dy1, dy2, dy3, dy4)
 
         try:
-            source_to_unit = inv(unit_to_source)
-        except Exception:
-            return 0, 0
-
-        # To map a location  (x,y)(x,y) from the source image
-        # to its corresponding location in the destination image, compute the product
-        source_to_destination = unit_to_dest @ source_to_unit
-        x, y, z = [float(w) for w in (source_to_destination @ matrix([[512], [384], [1]]))]
+            # To map a location  (x,y)(x,y) from the source image
+            # to its corresponding location in the destination image, compute the product
+            source_to_destination = unit_to_dest @ inv(unit_to_source)
+            x, y, z = [float(w) for w in (source_to_destination @ matrix([[512], [384], [1]]))]
+        except Exception as e:
+            print(e)
 
         return x / z, y / z
 
@@ -52,27 +76,10 @@ class MapWiiMoteData:
         source_points_123 = matrix([[x1, x2, x3],
                                     [y1, y2, y3],
                                     [1, 1, 1]])
-        source_point_4 = [[x4], [y4], [1]]
-
+        source_point_4 = [[x4], [y4], [ 1 ]]
         try:
-            scale_to_source = solve(source_points_123, source_point_4)
-        except Exception:
+            returnValue = [float(x) for x in solve(source_points_123, source_point_4)]
+            return returnValue
+        except Exception as e:
+            print(e)
             return 0, 0, 0
-
-        return [float(x) for x in scale_to_source]
-
-    def sort_ir_data_by_y(self, ir_data):
-        # Source: https://stackoverflow.com/questions/37111798/how-to-sort-a-list-of-x-y-coordinates
-        sorted_y = sorted(ir_data, key=lambda k: [k[1], k[0]])
-        position_x_1, position_y_1 = sorted_y[0]
-        positon_x_2, position_y_2 = sorted_y[1]
-        if position_x_1 > positon_x_2:
-            sorted_y[1] = (position_x_1, position_y_1)
-            sorted_y[0] = (positon_x_2, position_y_2)
-
-        position_x_1, position_y_1 = sorted_y[2]
-        positon_x_2, position_y_2 = sorted_y[3]
-        if position_x_1 < positon_x_2:
-            sorted_y[3] = position_x_1, position_y_1
-            sorted_y[2] = positon_x_2, position_y_2
-        return sorted_y
